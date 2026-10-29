@@ -1,0 +1,14 @@
+{
+  "db": {},
+  "mcp": {
+    "servers": [
+      {
+        "server": "Coros",
+        "tools": ["querySportRecords", "queryActivityLapData", "querySleepHrv", "querySleepOverview", "queryRestingHeartRate", "queryRecoveryStatus", "queryTrainingLoadAssessment", "queryFitnessAssessmentOverview", "queryUserInfo", "queryTrainingSchedule", "createScheduledWorkout", "downloadActivityFitFiles"]
+      },
+      { "server": "Parallel Search", "tools": ["web_search", "web_fetch"] }
+    ]
+  },
+  "sample": {},
+  "user": {}
+}

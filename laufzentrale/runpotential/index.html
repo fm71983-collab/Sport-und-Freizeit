@@ -1,0 +1,3359 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12161b">
+<meta name="description" content="Dein persönlicher Laufleistungs- und Pace-Rechner – offline und ohne Konto.">
+<title>RunPotential</title>
+<style>
+:root{
+  --bg:#12161b;
+  --panel:#191f26;
+  --panel-alt:#1f262e;
+  --line:#2a323b;
+  --text:#e7ebee;
+  --muted:#8a97a3;
+  --accent:#f2b705;
+  --good:#3ddc84;
+  --danger:#ff6b81;
+  --danger-bg:#2a151c;
+  --font-sans:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  --font-mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Consolas,monospace;
+
+  --z-reg:#5b8fc7;
+  --z-easy:#4fb0a5;
+  --z-aero:#6fae4e;
+  --z-marathon:#d4a017;
+  --z-thresh:#d9822f;
+  --z-vo2:#d9504f;
+}
+
+*{box-sizing:border-box}
+
+html{
+  padding-top:env(safe-area-inset-top, 0px);
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+  scroll-padding-top:env(safe-area-inset-top, 0px);
+}
+
+body{
+  margin:0;
+  font-family:var(--font-sans);
+  background:var(--bg);
+  color:var(--text);
+  font-variant-numeric:tabular-nums;
+}
+
+header{
+  padding:22px 18px 16px;
+  border-bottom:1px solid var(--line);
+}
+
+.header-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+header h1{
+  margin:0;
+  font-size:26px;
+  font-family:var(--font-mono);
+  letter-spacing:-.02em;
+}
+
+header p{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.primary-nav{
+  display:flex;
+  position:sticky;
+  top:env(safe-area-inset-top, 0px);
+  z-index:6;
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
+}
+
+.primary-tab{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  border:0;
+  border-right:1px solid var(--line);
+  border-bottom:3px solid transparent;
+  background:transparent;
+  color:var(--muted);
+  padding:13px 8px;
+  font-weight:600;
+  font-size:14px;
+  cursor:pointer;
+}
+
+.primary-tab svg{flex-shrink:0}
+
+.primary-tab:last-child{border-right:0}
+
+.primary-tab.active{
+  color:var(--text);
+  border-bottom-color:var(--accent);
+}
+
+.tab-row{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding:10px;
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
+  position:sticky;
+  top:calc(env(safe-area-inset-top, 0px) + 45px);
+  z-index:5;
+}
+
+.tab-row .tab{
+  white-space:nowrap;
+  border:1px solid var(--line);
+  background:var(--panel-alt);
+  padding:8px 13px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.tab-row .tab.active{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#1a1400;
+}
+
+.tab-row .tab[hidden]{display:none}
+
+main{
+  max-width:1050px;
+  margin:auto;
+  padding:18px;
+}
+
+.page{display:none}
+.page.active{display:block;animation:fadeIn .25s ease}
+
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(4px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .page.active{animation:none}
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:14px;
+}
+
+.card{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:18px;
+  margin-bottom:14px;
+}
+
+h2{margin:0 0 14px;font-size:20px}
+h3{margin:0 0 8px;font-size:15px}
+
+label{
+  display:block;
+  font-size:13px;
+  font-weight:600;
+  margin:10px 0 5px;
+  color:var(--muted);
+}
+
+input,select{
+  width:100%;
+  padding:10px 11px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--panel-alt);
+  color:var(--text);
+  font:inherit;
+  font-family:var(--font-mono);
+}
+
+select{font-family:var(--font-sans)}
+
+input:focus,select:focus,button:focus{
+  outline:2px solid var(--accent);
+  outline-offset:1px;
+}
+
+.row{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:10px;
+}
+
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+
+button.primary,button.secondary{
+  border:0;
+  border-radius:8px;
+  padding:11px 16px;
+  font-weight:700;
+  cursor:pointer;
+  font-family:var(--font-sans);
+}
+
+button.primary{background:var(--text);color:var(--bg)}
+button.secondary{background:var(--panel-alt);color:var(--text);border:1px solid var(--line)}
+
+.result{
+  background:var(--panel-alt);
+  border-left:3px solid var(--accent);
+  border-radius:6px;
+  padding:14px 16px;
+  margin-top:14px;
+  animation:fadeIn .3s ease;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .result{animation:none}
+}
+
+.big{
+  font-family:var(--font-mono);
+  font-size:32px;
+  font-weight:700;
+  color:var(--accent);
+  letter-spacing:-.01em;
+}
+
+.muted{color:var(--muted)}
+.good{color:var(--good);font-weight:700}
+.small{font-size:12px;color:var(--muted)}
+
+table{width:100%;border-collapse:collapse;margin-top:8px}
+.table-scroll{overflow-x:auto}
+
+th,td{
+  text-align:left;
+  padding:8px;
+  border-bottom:1px solid var(--line);
+  font-family:var(--font-mono);
+  font-size:14px;
+}
+
+th{font-size:12px;color:var(--muted);font-family:var(--font-sans)}
+
+.kpi{
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--panel-alt);
+}
+
+.kpi strong{
+  display:block;
+  font-size:22px;
+  margin-top:3px;
+  font-family:var(--font-mono);
+}
+
+.error{
+  background:var(--danger-bg);
+  border:1px solid var(--danger);
+  color:var(--danger);
+  border-radius:8px;
+  padding:12px 14px;
+  margin-top:14px;
+  font-size:14px;
+}
+
+.invalid{border-color:var(--danger)!important;outline:1px solid var(--danger)}
+
+.slider-group{margin:12px 0 18px}
+
+.slider-line{
+  display:grid;
+  grid-template-columns:1fr 82px;
+  gap:10px;
+  align-items:center;
+}
+
+input[type="range"]{width:100%;accent-color:var(--accent);cursor:pointer;padding:0;background:transparent}
+
+.slider-value{text-align:center;font-weight:700;color:var(--accent)}
+
+.star-rating{
+  position:relative;
+  display:inline-block;
+  line-height:1;
+  letter-spacing:2px;
+  white-space:nowrap;
+  vertical-align:middle;
+}
+
+.star-bg{color:var(--line)}
+
+.star-fg{
+  position:absolute;
+  top:0;
+  left:0;
+  width:var(--fill);
+  overflow:hidden;
+  white-space:nowrap;
+  color:var(--accent);
+}
+
+.zone-badge{
+  display:inline-block;
+  padding:4px 10px;
+  border-radius:6px;
+  font-weight:700;
+  font-size:12px;
+}
+
+.z-reg{background:rgba(91,143,199,.15);color:var(--z-reg);border-left:3px solid var(--z-reg)}
+.z-easy{background:rgba(79,176,165,.15);color:var(--z-easy);border-left:3px solid var(--z-easy)}
+.z-aero{background:rgba(111,174,78,.15);color:var(--z-aero);border-left:3px solid var(--z-aero)}
+.z-marathon{background:rgba(212,160,23,.15);color:var(--z-marathon);border-left:3px solid var(--z-marathon)}
+.z-thresh{background:rgba(217,130,47,.15);color:var(--z-thresh);border-left:3px solid var(--z-thresh)}
+.z-vo2{background:rgba(217,80,79,.15);color:var(--z-vo2);border-left:3px solid var(--z-vo2)}
+
+footer{
+  max-width:1050px;
+  margin:10px auto 30px;
+  padding:14px 18px 0;
+  color:var(--muted);
+  font-size:12px;
+  border-top:1px solid var(--line);
+}
+
+@media(max-width:600px){
+  header h1{font-size:22px}
+  main{padding:12px}
+  .card{padding:14px}
+  .slider-line{grid-template-columns:1fr 72px}
+  .tab-row{top:calc(env(safe-area-inset-top, 0px) + 42px)}
+}
+
+#splash{display:none}
+
+textarea{
+  width:100%;
+  padding:10px 11px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:var(--panel-alt);
+  color:var(--text);
+  font:12px var(--font-mono);
+  resize:vertical;
+}
+
+.dist-custom{margin-top:6px}
+
+.perf-row{
+  display:grid;
+  grid-template-columns:1.3fr 1fr 1fr auto;
+  gap:10px;
+  align-items:end;
+  padding:6px 0 12px;
+  border-bottom:1px solid var(--line);
+}
+
+.perf-row label{margin-top:4px}
+.perf-row .pr-remove{padding:10px 13px}
+
+label.file-btn{
+  display:inline-block;
+  margin:0;
+  border-radius:8px;
+  padding:11px 16px;
+  font-weight:700;
+  font-size:inherit;
+  cursor:pointer;
+  background:var(--panel-alt);
+  color:var(--text);
+  border:1px solid var(--line);
+}
+
+button.danger-btn{color:var(--danger);border-color:var(--danger)}
+
+@media(max-width:600px){
+  .perf-row{grid-template-columns:1fr 1fr}
+  .perf-row .pr-remove{justify-self:end}
+}
+
+/* ================= v8 Design ================= */
+button,select,textarea{font-family:var(--font-sans)}
+.install-btn{margin-left:auto;display:inline-flex;align-items:center;gap:6px;padding:8px 14px!important;font-size:13px}
+.install-btn[hidden]{display:none}
+html,body{overscroll-behavior-y:none}
+body{-webkit-tap-highlight-color:transparent}
+
+:root{
+  --font-sans:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --font-mono:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --radius:14px;
+  --edge:rgba(255,255,255,.07);
+  --card-sheen:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0) 55%);
+  --accent-2:#ffd24d;
+  --ease:cubic-bezier(.2,.7,.2,1);
+}
+
+body{
+  background:
+    radial-gradient(900px 420px at 50% -180px,rgba(242,183,5,.10),transparent 65%),
+    var(--bg);
+  letter-spacing:.003em;
+  -webkit-font-smoothing:antialiased;
+}
+
+header{border-bottom-color:var(--edge)}
+header h1{font-family:var(--font-sans);font-weight:700;letter-spacing:-.015em}
+header p{font-size:13px}
+
+.primary-nav{background:rgba(18,22,27,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom-color:var(--edge)}
+.primary-tab{font-weight:500;transition:color .2s,border-color .25s var(--ease)}
+.primary-tab.active{font-weight:600}
+.tab-row{background:rgba(18,22,27,.88);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom-color:var(--edge);scrollbar-width:none}
+.tab-row::-webkit-scrollbar{display:none}
+.tab-row .tab{border-radius:999px;font-weight:500;transition:background .2s,color .2s,border-color .2s,transform .12s}
+.tab-row .tab:active{transform:scale(.96)}
+.tab-row .tab.active{background:linear-gradient(180deg,var(--accent-2),var(--accent));font-weight:600}
+
+.page.active{animation:pageIn .3s var(--ease)}
+@keyframes pageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.card{
+  border-radius:var(--radius);
+  background:var(--card-sheen),var(--panel);
+  border-color:var(--edge);
+  box-shadow:0 10px 30px rgba(0,0,0,.22);
+}
+.card .card{box-shadow:none;background:var(--panel-alt)}
+h2{font-weight:700;letter-spacing:-.01em}
+h3{font-weight:600}
+label{font-weight:500}
+
+input,select,textarea{border-radius:10px;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(242,183,5,.18)}
+button:focus{outline:none}
+button:focus-visible,label.file-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+button.primary,button.secondary,label.file-btn{border-radius:999px;font-weight:600;transition:transform .12s,box-shadow .2s,border-color .2s,background .2s}
+button.primary{background:linear-gradient(180deg,var(--accent-2),var(--accent));color:#1a1400;box-shadow:0 6px 18px rgba(242,183,5,.22)}
+button.primary:hover{box-shadow:0 8px 24px rgba(242,183,5,.32)}
+button.primary:active,button.secondary:active,label.file-btn:active{transform:scale(.97)}
+button.secondary:hover,label.file-btn:hover{border-color:rgba(242,183,5,.6)}
+button.danger-btn:hover{border-color:var(--danger)}
+button:disabled{opacity:.45;cursor:not-allowed}
+
+.big{font-weight:700;text-shadow:0 0 28px rgba(242,183,5,.22)}
+.kpi{border-radius:12px;border-color:var(--edge);background:rgba(255,255,255,.03)}
+.kpi strong{font-weight:700}
+
+.result{
+  border:1px solid rgba(242,183,5,.16);
+  border-left:1px solid rgba(242,183,5,.16);
+  border-radius:12px;
+  background:linear-gradient(180deg,rgba(242,183,5,.06),rgba(242,183,5,0) 120px),var(--panel-alt);
+  animation:none;
+  transition:opacity .2s,filter .2s;
+}
+.result.stale{opacity:.4;filter:saturate(.2)}
+.error{border-radius:12px}
+
+th{font-weight:500}
+td{font-weight:400}
+tr:hover td{background:rgba(255,255,255,.02)}
+td b{font-weight:700;color:var(--text)}
+
+.zone-badge{border-radius:999px;border-left:0;padding:4px 11px}
+
+/* Profil-Editor */
+.editor{
+  background:var(--card-sheen),var(--panel);
+  border:1px solid var(--edge);
+  border-radius:var(--radius);
+  margin-bottom:14px;
+  box-shadow:0 10px 30px rgba(0,0,0,.22);
+}
+.editor>summary{list-style:none;cursor:pointer;padding:16px 18px;display:flex;justify-content:space-between;align-items:center;font-weight:600;border-radius:var(--radius)}
+.editor>summary::-webkit-details-marker{display:none}
+.editor>summary::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .25s var(--ease);margin:0 4px 4px 12px}
+.editor[open]>summary::after{transform:rotate(-135deg);margin-bottom:-4px}
+.editor[open]>.editor-body{animation:pageIn .25s var(--ease)}
+.editor-body{padding:0 16px 16px}
+.editor>summary .small{font-weight:400}
+.hero-actions button.secondary{padding:9px 14px;font-size:13px}
+h3,.editor>summary{letter-spacing:-.005em}
+.cta-card{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.cta-card p{margin:4px 0 0}
+
+/* Hero */
+.hero{position:relative;overflow:hidden;padding:22px 22px 18px}
+.hero::before{content:"";position:absolute;top:-160px;right:-120px;width:420px;height:420px;background:radial-gradient(circle,rgba(242,183,5,.16),transparent 62%);pointer-events:none}
+.hero>*{position:relative}
+.hero-top{display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.hero-time{font-size:60px;font-weight:700;line-height:1;letter-spacing:-.025em;margin:8px 0 10px;background:linear-gradient(180deg,#ffffff,#c9d1d8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hero-sub{margin-top:8px}
+.hero-title{font-size:30px;line-height:1.15;margin:8px 0 10px;letter-spacing:-.02em}
+
+.ring{position:relative;width:128px;height:128px;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring-track{fill:none;stroke:rgba(255,255,255,.07);stroke-width:10}
+.ring-val{fill:none;stroke:url(#ringGrad);stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1.1s var(--ease)}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.ring-center strong{font-size:28px;font-weight:700;line-height:1}
+.ring-center span{font-size:9px;line-height:1.25;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:5px}
+
+.hero-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}
+.tile{background:rgba(255,255,255,.03);border:1px solid var(--edge);border-radius:12px;padding:12px 14px;transition:border-color .2s,transform .2s var(--ease)}
+.tile:hover{border-color:rgba(242,183,5,.35);transform:translateY(-2px)}
+.t-label{font-size:12px;color:var(--muted)}
+.t-time{font-size:23px;font-weight:700;display:block;margin:2px 0 1px;letter-spacing:-.01em}
+.t-pace{font-size:12px;color:var(--muted)}
+
+.curve{position:relative;margin-top:22px;padding-top:16px;border-top:1px solid var(--edge)}
+.curve-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap;margin-bottom:6px}
+.curve-head h3{margin:0}
+.curve-plot{position:relative}
+.curve-plot svg{display:block;width:100%;touch-action:pan-y;cursor:crosshair}
+.c-grid{stroke:rgba(255,255,255,.06);stroke-width:1}
+.c-axis{fill:var(--muted);font-size:11px;font-family:var(--font-sans)}
+.c-band{fill:rgba(242,183,5,.10)}
+.c-line{fill:none;stroke:var(--accent);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.c-pt{fill:var(--text);stroke:var(--panel);stroke-width:2}
+.c-cross{stroke:rgba(231,235,238,.35);stroke-width:1;stroke-dasharray:3 3}
+.c-dot{fill:var(--accent);stroke:var(--panel);stroke-width:2}
+.c-tip{position:absolute;top:0;left:0;pointer-events:none;background:#0c1014;border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px;line-height:1.35;white-space:nowrap;box-shadow:0 8px 20px rgba(0,0,0,.45);opacity:0;transition:opacity .12s}
+.c-tip.show{opacity:1}
+.c-tip b{font-weight:700}
+.c-tip .muted{font-size:11px}
+.legend-inline{font-size:12px;color:var(--muted);display:flex;gap:14px;align-items:center}
+.legend-inline i{display:inline-block;width:16px;height:2px;border-radius:2px;background:var(--accent);vertical-align:middle;margin-right:6px}
+.legend-inline em{font-style:normal;display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--text);margin-right:6px;vertical-align:middle}
+.hero-actions{margin-top:14px}
+
+@media(max-width:600px){
+  .hero{padding:18px 16px 14px}
+  .primary-tab{font-size:13px;gap:5px;padding:13px 4px}
+  .hero-top{gap:14px;flex-wrap:nowrap}
+  .hero-time{font-size:40px;margin:6px 0 8px}
+  .ring{width:92px;height:92px}
+  .ring-center strong{font-size:20px}
+  .ring-center span{font-size:8px}
+  .hero-meta .star-rating{font-size:15px!important}
+  .hero-tiles{gap:8px}
+  .tile{padding:10px 10px}
+  .t-time{font-size:17px}
+  .t-label,.t-pace{font-size:11px}
+  .hero-title{font-size:25px}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .page.active,.editor[open]>.editor-body{animation:none}
+  .ring-val{transition:none}
+}
+</style>
+</head>
+
+<body>
+<header>
+  <div class="header-title">
+    <svg width="30" height="30" viewBox="0 0 84 84" fill="none" aria-hidden="true">
+      <circle cx="42" cy="46" r="29" stroke="#f2b705" stroke-width="6"/>
+      <rect x="34" y="6" width="16" height="8" rx="3" fill="#f2b705"/>
+      <line x1="42" y1="46" x2="42" y2="26" stroke="#e7ebee" stroke-width="5" stroke-linecap="round"/>
+      <line x1="42" y1="46" x2="58" y2="40" stroke="#f2b705" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="42" cy="46" r="4" fill="#e7ebee"/>
+    </svg>
+    <h1>RunPotential</h1>
+    <button class="primary install-btn" id="installButton" type="button" hidden>App installieren</button>
+  </div>
+  <p>Dein persönlicher Laufleistungs- und Pace-Rechner</p>
+</header>
+
+<nav class="primary-nav" aria-label="Bereich">
+  <button class="primary-tab active" data-section="profil">
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2" fill="currentColor" stroke="none"/></svg>
+    Profil
+  </button>
+  <button class="primary-tab" data-section="pace">
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="9" r="5.5"/><path d="M6.5 2.5h3" stroke-linecap="round"/><path d="M8 9V5.5" stroke-linecap="round"/></svg>
+    Pace
+  </button>
+  <button class="primary-tab" data-section="wettkampf">
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" aria-hidden="true"><path d="M2 14V9h3.2v5M6.6 14V5.5h2.8V14M10.8 14v-7h3.2v7"/></svg>
+    Wettkampf
+  </button>
+  <button class="primary-tab" data-section="training">
+    <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12l4-4 3 3 5-6"/><path d="M10.5 5H14v3.5"/></svg>
+    Training
+  </button>
+</nav>
+<nav class="tab-row" aria-label="Werkzeug">
+  <button class="tab active" data-page="home" data-section="profil">Profil</button>
+
+  <button class="tab" data-page="pace" data-section="pace">Pace-Rechner</button>
+  <button class="tab" data-page="gap" data-section="pace">GAP</button>
+  <button class="tab" data-page="weather" data-section="pace">Wetter/Höhe</button>
+  <button class="tab" data-page="treadmill" data-section="pace">Laufband</button>
+
+  <button class="tab" data-page="race" data-section="wettkampf">Prognose</button>
+  <button class="tab" data-page="agegrade" data-section="wettkampf">Altersklasse</button>
+  <button class="tab" data-page="pacingplan" data-section="wettkampf">Pacing-Plan</button>
+
+  <button class="tab" data-page="scenario" data-section="training">Szenario</button>
+  <button class="tab" data-page="interval" data-section="training">Intervalle</button>
+  <button class="tab" data-page="zones" data-section="training">Trainingsbereiche</button>
+  <button class="tab" data-page="acwr" data-section="training">Belastung</button>
+  <button class="tab" data-page="taper" data-section="training">Taper</button>
+</nav>
+
+<main>
+<section id="home" class="page active">
+  <div id="hero"></div>
+
+  <details id="profileEditor" class="editor">
+    <summary><span>Profil bearbeiten <span class="small" id="editorHint">· Leistungen, Person, Training</span></span></summary>
+    <div class="editor-body">
+      <div class="card">
+        <h3>Leistungen</h3>
+        <p class="small">Aktuelle Wettkampf- oder Testergebnisse über beliebige Distanzen, z. B. aus deiner Uhr-App (Garmin, Coros, Polar, Suunto …). Je aktueller und je näher an deiner Zieldistanz, desto besser die Prognosen. Zwei unterschiedliche Distanzen machen das Modell individueller.</p>
+        <div id="perfRows"></div>
+        <div class="actions">
+          <button class="secondary" id="addPerfButton" type="button">+ Leistung hinzufügen</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h3>Person</h3>
+          <div class="row">
+            <div>
+              <label for="profAge">Alter (Jahre)</label>
+              <input id="profAge" type="number" min="5" max="100" placeholder="z. B. 40">
+            </div>
+            <div>
+              <label for="profWeight">Gewicht (kg)</label>
+              <input id="profWeight" type="number" min="20" max="250" step=".1" placeholder="z. B. 72">
+            </div>
+            <div>
+              <label for="profGender">Geschlecht</label>
+              <select id="profGender">
+                <option value="">– bitte wählen –</option>
+                <option value="m">Männlich</option>
+                <option value="w">Weiblich</option>
+              </select>
+            </div>
+          </div>
+          <p class="small">Für Altersklassen- und Sterne-Bewertung.</p>
+        </div>
+
+        <div class="card">
+          <h3>Training (optional)</h3>
+          <div class="row">
+            <div>
+              <label for="profWeekly">Ø Wochenumfang (km)</label>
+              <input id="profWeekly" type="number" min="0" max="300" placeholder="z. B. 40">
+            </div>
+            <div>
+              <label for="profLong">Längster Lauf (km)</label>
+              <input id="profLong" type="number" min="0" max="100" placeholder="z. B. 18">
+            </div>
+          </div>
+          <p class="small">Füllt Szenario, Belastung und Taper vor.</p>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="saveProfileButton">Profil speichern</button>
+        <button class="secondary" id="exampleProfileButton" type="button">Beispielwerte einsetzen</button>
+      </div>
+      <div id="profileMsg" class="result" hidden aria-live="polite"></div>
+    </div>
+  </details>
+
+  <div class="card cta-card">
+    <div>
+      <h3>Was wäre, wenn ich mein Training anpasse?</h3>
+      <p class="muted">Simuliere, wie sich mehr Umfang, Schwelleneinheiten oder ein längerer Longrun auf deine Zielzeiten auswirken könnten.</p>
+    </div>
+    <button class="secondary" id="scenarioCTAButton" type="button">Szenario öffnen →</button>
+  </div>
+
+  <details class="editor">
+    <summary><span>Sichern &amp; übertragen <span class="small">· Export, Import, Löschen</span></span></summary>
+    <div class="editor-body">
+      <p class="small">
+        Exportiere dein Profil als Code oder Datei, um es auf ein anderes Gerät
+        zu übertragen oder zu sichern. Zum Importieren Code einfügen oder Datei wählen.
+      </p>
+      <label for="dataCode">Profil-Code</label>
+      <textarea id="dataCode" rows="3" spellcheck="false" placeholder='{"app":"RunPotential","v":2,...}'></textarea>
+      <div class="actions">
+        <button class="secondary" id="exportCodeButton" type="button">Code erzeugen &amp; kopieren</button>
+        <button class="secondary" id="exportFileButton" type="button">Als Datei speichern</button>
+        <button class="secondary" id="importCodeButton" type="button">Code importieren</button>
+        <label class="secondary file-btn" for="importFile">Datei importieren</label>
+        <input id="importFile" type="file" accept=".json,application/json,text/plain" hidden>
+        <button class="secondary danger-btn" id="resetProfileButton" type="button">Profil löschen</button>
+      </div>
+      <div id="dataMsg" aria-live="polite"></div>
+    </div>
+  </details>
+</section>
+
+<section id="pace" class="page">
+  <div class="card">
+    <h2>Pace-Rechner</h2>
+
+    <div class="row">
+      <div>
+        <label for="pd">Distanz</label>
+        <input id="pd" type="number" step="0.001" min="0" value="10">
+      </div>
+      <div>
+        <label for="pu">Einheit</label>
+        <select id="pu">
+          <option value="km">km</option>
+          <option value="mi">Meilen</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="ph">Stunden</label>
+        <input id="ph" type="number" min="0" value="0">
+      </div>
+      <div>
+        <label for="pm">Minuten</label>
+        <input id="pm" type="number" min="0" value="42">
+      </div>
+      <div>
+        <label for="ps">Sekunden</label>
+        <input id="ps" type="number" min="0" max="59" value="30">
+      </div>
+    </div>
+    <div id="paceOut" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="race" class="page">
+  <div class="card">
+    <h2>Wettkampf-Prognose</h2>
+    <p class="muted">
+      Basiert auf dem Riegel-Modell. Der Ermüdungs-Exponent wird aus allen
+      Leistungen in deinem Profil geschätzt.
+    </p>
+
+    <div class="row">
+      <div>
+        <label for="rd">Referenzdistanz</label>
+        <select id="rd" class="dist-select" data-default="10"></select>
+        <input id="rdCustom" class="dist-custom" type="number" step="0.01" min="0.1" placeholder="Distanz in km" aria-label="Eigene Distanz in km" hidden>
+      </div>
+      <div>
+        <label for="rt">Referenzzeit</label>
+        <input id="rt" type="text" placeholder="z. B. 45:00">
+      </div>
+    </div>
+    <div id="raceOut" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="interval" class="page">
+  <div class="card">
+    <h2>Intervall- und Tempowechsel-Rechner</h2>
+
+    <div class="row">
+      <div>
+        <label for="reps">Wiederholungen</label>
+        <input id="reps" type="number" min="1" value="6">
+      </div>
+      <div>
+        <label for="fastD">Schnelle Strecke (km)</label>
+        <input id="fastD" type="number" step=".1" min="0" value="1">
+      </div>
+      <div>
+        <label for="fastP">Schnelle Pace</label>
+        <input id="fastP" value="4:00" placeholder="4:00">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="recD">Pause (km)</label>
+        <input id="recD" type="number" step=".1" min="0" value=".4">
+      </div>
+      <div>
+        <label for="recP">Pausenpace</label>
+        <input id="recP" value="5:45" placeholder="5:45">
+      </div>
+    </div>
+    <div id="intervalOut" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="zones" class="page">
+  <div class="card">
+    <h2>Leistungsmodell und Trainingsbereiche</h2>
+    <p class="muted">
+      Kombiniert alle Leistungen aus deinem Profil zu einem konsistenten Leistungsbild.
+    </p>
+    <p class="small" id="zonesBasis"></p>
+
+    <div class="row">
+      <div>
+        <label for="lth">Schwellen-Test optional (Zeit)</label>
+        <input id="lth" placeholder="z. B. 30:00">
+      </div>
+      <div>
+        <label for="lthd">Testdistanz km</label>
+        <input id="lthd" type="number" step=".1" min="0" placeholder="z. B. 7">
+      </div>
+    </div>
+    <p class="small">Schwellen-Test: ein 20–60-minütiger Lauf in maximal durchhaltbarem, gleichmäßigem Tempo. Ohne Test wird die Schwelle als Pace geschätzt, die du rund 60 Minuten halten könntest.</p>
+    <div id="zonesOut" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="scenario" class="page">
+  <div class="card">
+    <h2>Szenario-Spielplatz</h2>
+    <p class="muted">
+      Verändere die Trainingsparameter mit den Schiebereglern – das Ergebnis unten aktualisiert sich sofort.
+    </p>
+
+    <div class="grid">
+      <div>
+        <h3>Ausgangsleistung</h3>
+        <p class="small" id="scBasis">Wird aus den Leistungen in deinem Profil berechnet.</p>
+        </div>
+
+      <div>
+        <h3>Training</h3>
+
+        <div class="slider-group">
+          <label for="scVolRange">Wochenumfang aktuell</label>
+          <div class="slider-line">
+            <input id="scVolRange" type="range" min="0" max="200" step="1" value="60">
+            <input id="scVol" class="slider-value" type="number" min="0" max="200" value="60">
+          </div>
+          <span class="small">Kilometer pro Woche</span>
+        </div>
+
+        <div class="slider-group">
+          <label for="scNewVolRange">Neuer Wochenumfang</label>
+          <div class="slider-line">
+            <input id="scNewVolRange" type="range" min="0" max="250" step="1" value="70">
+            <input id="scNewVol" class="slider-value" type="number" min="0" max="250" value="70">
+          </div>
+          <span class="small">Geplanter Umfang</span>
+        </div>
+
+        <div class="slider-group">
+          <label for="scThreshRange">Schwellen-Einheiten aktuell</label>
+          <div class="slider-line">
+            <input id="scThreshRange" type="range" min="0" max="5" step="1" value="1">
+            <input id="scThresh" class="slider-value" type="number" min="0" max="5" value="1">
+          </div>
+        </div>
+
+        <div class="slider-group">
+          <label for="scNewThreshRange">Neue Schwellen-Einheiten</label>
+          <div class="slider-line">
+            <input id="scNewThreshRange" type="range" min="0" max="5" step="1" value="2">
+            <input id="scNewThresh" class="slider-value" type="number" min="0" max="5" value="2">
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3>Weitere Faktoren</h3>
+
+        <div class="slider-group">
+          <label for="scLongRange">Longrun aktuell</label>
+          <div class="slider-line">
+            <input id="scLongRange" type="range" min="0" max="50" step="1" value="18">
+            <input id="scLong" class="slider-value" type="number" min="0" max="50" value="18">
+          </div>
+          <span class="small">Kilometer</span>
+        </div>
+
+        <div class="slider-group">
+          <label for="scNewLongRange">Neuer Longrun</label>
+          <div class="slider-line">
+            <input id="scNewLongRange" type="range" min="0" max="60" step="1" value="22">
+            <input id="scNewLong" class="slider-value" type="number" min="0" max="60" value="22">
+          </div>
+        </div>
+
+        <div class="slider-group">
+          <label for="scWeeksRange">Zeitraum</label>
+          <div class="slider-line">
+            <input id="scWeeksRange" type="range" min="1" max="52" step="1" value="8">
+            <input id="scWeeks" class="slider-value" type="number" min="1" max="52" value="8">
+          </div>
+          <span class="small">Wochen</span>
+        </div>
+
+        <div class="slider-group">
+          <label for="scWeightRange">Gewichtsänderung</label>
+          <div class="slider-line">
+            <input id="scWeightRange" type="range" min="-15" max="15" step=".1" value="0">
+            <input id="scWeight" class="slider-value" type="number" min="-15" max="15" step=".1" value="0">
+          </div>
+          <span class="small">Negative Werte bedeuten Abnahme</span>
+          <p class="small" id="scWeightContext"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="secondary" id="resetScenarioButton">
+        Zurücksetzen
+      </button>
+    </div>
+
+    <div id="scenarioOut" aria-live="polite"></div>
+  </div>
+</section>
+<section id="agegrade" class="page">
+  <div class="card">
+    <h2>Altersklassen-Bewertung <span class="small">(Näherung)</span></h2>
+    <p class="muted">Schätzt deine Leistung im Vergleich zur Weltklasse deiner Altersgruppe – angelehnt an das Prinzip der WMA-Age-Grading-Tabellen. <b>Kein Ersatz für die offizielle DLV-/WMA-Tabelle</b>, sondern ein geglättetes Näherungsmodell (typische Abweichung: einige Prozentpunkte). Verfügbar für 3 km bis Marathon.</p>
+
+    <div class="row">
+      <div>
+        <label for="agGender">Geschlecht</label>
+        <select id="agGender">
+          <option value="m">Männlich</option>
+          <option value="w">Weiblich</option>
+        </select>
+      </div>
+      <div>
+        <label for="agAge">Alter</label>
+        <input id="agAge" type="number" min="5" max="100" placeholder="z. B. 40">
+      </div>
+      <div>
+        <label for="agDist">Distanz</label>
+        <select id="agDist" class="dist-select" data-default="10"></select>
+        <input id="agDistCustom" class="dist-custom" type="number" step="0.01" min="3" max="42.195" placeholder="Distanz in km" aria-label="Eigene Distanz in km" hidden>
+      </div>
+    </div>
+
+    <label for="agTime">Deine Zeit</label>
+    <input id="agTime" placeholder="z. B. 45:00">
+    <div id="agOut" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="gap" class="page">
+  <div class="card">
+    <h2>Grade Adjusted Pace (GAP)</h2>
+    <p class="muted">Rechnet eine hügelige Pace in eine flach-äquivalente Pace um, basierend auf dem Energiekosten-Modell von Minetti et al. (2002).</p>
+
+    <div class="row">
+      <div>
+        <label for="gapPace">Tatsächliche Pace (min/km)</label>
+        <input id="gapPace" value="4:30">
+      </div>
+      <div>
+        <label for="gapGrade">Ø Steigung (%)</label>
+        <input id="gapGrade" type="number" step=".1" value="3">
+      </div>
+      <div>
+        <label for="gapDist">Distanz km (optional)</label>
+        <input id="gapDist" type="number" step=".1" value="10">
+      </div>
+    </div>
+    <p class="small">Positive Werte = bergauf, negative Werte = bergab. Gültig etwa zwischen −45 % und +45 %.</p>
+    <div id="gapOut" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="acwr" class="page">
+  <div class="card">
+    <h2>Belastungssteuerung (ACWR)</h2>
+    <p class="muted">Verhältnis aus akuter (aktueller Woche) zu chronischer (Ø der letzten Wochen) Trainingsbelastung. Grobe Orientierung nach gängigen Trainingssteuerungs-Konzepten (u. a. Gabbett) – keine medizinische Bewertung.</p>
+
+    <div class="row">
+      <div>
+        <label for="acwrAcute">Diese Woche (km)</label>
+        <input id="acwrAcute" type="number" value="60">
+      </div>
+      <div>
+        <label for="acwrChronic">Ø letzte 4 Wochen (km)</label>
+        <input id="acwrChronic" type="number" value="55">
+      </div>
+    </div>
+    <div id="acwrOut" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="weather" class="page">
+  <div class="card">
+    <h2>Hitze- und Höhen-Anpassung</h2>
+    <p class="muted">Grobe Faustregel zur Pace-Anpassung bei Hitze, Luftfeuchtigkeit und Höhenlage. Akklimatisierung, Schweißrate und individuelle Hitzeverträglichkeit variieren stark – reine Orientierung.</p>
+
+    <div class="row">
+      <div>
+        <label for="wxPace">Basis-Pace (min/km)</label>
+        <input id="wxPace" value="4:15">
+      </div>
+      <div>
+        <label for="wxTemp">Temperatur (°C)</label>
+        <input id="wxTemp" type="number" value="25">
+      </div>
+      <div>
+        <label for="wxHum">Luftfeuchtigkeit (%)</label>
+        <input id="wxHum" type="number" min="0" max="100" value="60">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="wxAlt">Höhe über NN (m)</label>
+        <input id="wxAlt" type="number" value="0">
+      </div>
+      <div>
+        <label for="wxDist">Renndistanz</label>
+        <select id="wxDist">
+          <option value="5">5 km</option>
+          <option value="10" selected>10 km</option>
+          <option value="21.0975">Halbmarathon</option>
+          <option value="42.195">Marathon</option>
+        </select>
+      </div>
+    </div>
+    <div id="wxOut" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="taper" class="page">
+  <div class="card">
+    <h2>Taper-Rechner</h2>
+    <p class="muted">Erzeugt ein grobes Standardmuster zur Umfangsreduktion vor dem Rennen.</p>
+
+    <div class="row">
+      <div>
+        <label for="tapVol">Aktueller Wochenumfang (km)</label>
+        <input id="tapVol" type="number" value="60">
+      </div>
+      <div>
+        <label for="tapDist">Zieldistanz</label>
+        <select id="tapDist">
+          <option value="5">5 km</option>
+          <option value="10">10 km</option>
+          <option value="21.0975">Halbmarathon</option>
+          <option value="42.195" selected>Marathon</option>
+        </select>
+      </div>
+      <div>
+        <label for="tapWeeks">Wochen bis Renntag</label>
+        <input id="tapWeeks" type="number" min="1" max="52" step="1" value="4">
+      </div>
+    </div>
+    <div id="tapOut" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="pacingplan" class="page">
+  <div class="card">
+    <h2>Pacing-Plan</h2>
+    <p class="muted">Erstellt einen kilometergenauen Zielzeitplan für verschiedene Pacing-Strategien. Negativ = zweite Hälfte schneller.</p>
+
+    <div class="row">
+      <div>
+        <label for="ppDist">Distanz (km)</label>
+        <input id="ppDist" type="number" step=".01" value="10">
+      </div>
+      <div>
+        <label for="ppTime">Zielzeit</label>
+        <input id="ppTime" value="42:00">
+      </div>
+      <div>
+        <label for="ppStrategy">Strategie</label>
+        <select id="ppStrategy">
+          <option value="0">Gleichmäßig (Even)</option>
+          <option value="-0.03">Leicht negativ</option>
+          <option value="-0.06">Negativ</option>
+          <option value="0.03">Leicht positiv</option>
+        </select>
+      </div>
+    </div>
+    <div id="ppOut" aria-live="polite"></div>
+  </div>
+</section>
+
+<section id="treadmill" class="page">
+  <div class="card">
+    <h2>Laufband ↔ Straße</h2>
+    <p class="muted">Berücksichtigt den fehlenden Luftwiderstand auf dem Laufband (Jones &amp; Doust 1996: ca. 1 % Steigung ab ≈ 10,5 km/h) über das Minetti-Kostenmodell.</p>
+
+    <div class="row">
+      <div>
+        <label for="tmMode">Richtung</label>
+        <select id="tmMode">
+          <option value="toTreadmill">Straße → Laufband</option>
+          <option value="toRoad">Laufband → Straße</option>
+        </select>
+      </div>
+      <div>
+        <label for="tmPace">Pace (min/km)</label>
+        <input id="tmPace" value="4:15">
+      </div>
+      <div>
+        <label for="tmIncline">Steigung Laufband (%)</label>
+        <input id="tmIncline" type="number" step=".1" value="1">
+      </div>
+    </div>
+
+    <div class="actions"><button class="secondary" id="tmRecButton" type="button">Empfohlene Steigung einsetzen</button></div>
+    <div id="tmOut" aria-live="polite"></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  RunPotential v8.1 · Persönliche Kopie in der Laufzentrale. Berechnungen sind Trainings- und Planungshilfen und ersetzen keine
+  Leistungsdiagnostik.
+</footer>
+
+<script>
+
+"use strict";
+
+const $ = id => document.getElementById(id);
+
+const RIEGEL_DEFAULT = 1.06;
+const RIEGEL_MIN = 1.02;
+const RIEGEL_MAX = 1.15;
+const STORAGE_KEY = "runPotentialProfile";
+const MAX_PERFS = 8;
+
+const DIST_PRESETS = [
+  [1, "1 km"],
+  [1.609344, "1 Meile"],
+  [3, "3 km"],
+  [5, "5 km"],
+  [10, "10 km"],
+  [15, "15 km"],
+  [16.09344, "10 Meilen"],
+  [21.0975, "Halbmarathon"],
+  [42.195, "Marathon"]
+];
+
+const STANDARD_TARGETS = [3, 5, 10, 15, 21.0975, 42.195];
+
+/* ---------- Zeit- und Distanz-Hilfsfunktionen ---------- */
+
+function timeToSec(value) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value > 0 ? value : 0;
+  }
+
+  if (value === null || value === undefined) return 0;
+
+  const str = String(value).trim().replace(",", ".");
+  if (!str) return 0;
+
+  const parts = str.split(":");
+  if (parts.length > 3 || parts.some(part => part.trim() === "")) return 0;
+
+  const nums = parts.map(Number);
+  if (nums.some(n => !Number.isFinite(n) || n < 0)) return 0;
+
+  if (nums.length === 1) return nums[0] * 60;
+
+  if (nums.slice(1).some(n => n >= 60)) return 0;
+
+  if (nums.length === 3) return nums[0] * 3600 + nums[1] * 60 + nums[2];
+  return nums[0] * 60 + nums[1];
+}
+
+function fmt(seconds, showHours = false) {
+  if (!Number.isFinite(seconds)) return "–";
+
+  seconds = Math.max(0, Math.round(seconds));
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0 || showHours) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(secs).padStart(2, "0")}`;
+}
+
+function fmtT(seconds) {
+  return fmt(seconds, seconds >= 3600);
+}
+
+function fmtKm(km) {
+  return (Math.round(km * 100) / 100).toLocaleString("de-DE", { maximumFractionDigits: 2 });
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-");
+  return `${d}.${m}.${y}`;
+}
+
+function speedFromPace(secondsPerKm) {
+  return secondsPerKm > 0 ? 3600 / secondsPerKm : 0;
+}
+
+function presetFor(km) {
+  return DIST_PRESETS.find(([d]) => Math.abs(d - km) < 1e-3) || null;
+}
+
+function distName(km) {
+  const preset = presetFor(km);
+  return preset ? preset[1] : `${fmtKm(km)} km`;
+}
+
+function sameDist(a, b) {
+  return Math.abs(a - b) < 1e-3;
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+/* ---------- Distanz-Auswahl (Presets + eigene Distanz) ---------- */
+
+function distOptionsHtml() {
+  return DIST_PRESETS.map(([d, name]) => `<option value="${d}">${name}</option>`).join("")
+    + `<option value="custom">Andere Distanz …</option>`;
+}
+
+function customInputFor(select) {
+  if (select.id) return $(`${select.id}Custom`);
+  return select.parentElement.querySelector(".pr-custom");
+}
+
+function syncCustomVisibility(select) {
+  const custom = customInputFor(select);
+  if (custom) custom.hidden = select.value !== "custom";
+}
+
+function readDistFrom(select) {
+  if (select.value === "custom") {
+    const custom = customInputFor(select);
+    return custom ? Number(custom.value) : 0;
+  }
+  return Number(select.value);
+}
+
+function setDistOn(select, km) {
+  const preset = presetFor(km);
+  const custom = customInputFor(select);
+  if (preset) {
+    select.value = String(preset[0]);
+  } else {
+    select.value = "custom";
+    if (custom) custom.value = Math.round(km * 1000) / 1000;
+  }
+  syncCustomVisibility(select);
+}
+
+function initDistSelects() {
+  document.querySelectorAll("select.dist-select").forEach(select => {
+    select.innerHTML = distOptionsHtml();
+    setDistOn(select, Number(select.dataset.default) || 10);
+  });
+
+  document.addEventListener("change", event => {
+    const t = event.target;
+    if (t.matches && (t.matches("select.dist-select") || t.matches("select.pr-dist"))) {
+      syncCustomVisibility(t);
+      if (t.value === "custom") {
+        const custom = customInputFor(t);
+        if (custom) custom.focus();
+      }
+    }
+  });
+}
+
+/* ---------- Profil-Datenmodell ---------- */
+
+function sanitizePerf(p) {
+  if (!p || typeof p !== "object") return null;
+  const dist = Number(p.dist);
+  const time = typeof p.time === "string" ? timeToSec(p.time) : Number(p.time);
+  if (!(dist > 0 && dist <= 250) || !(time > 0)) return null;
+  const date = typeof p.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.date) ? p.date : "";
+  return { dist, time: Math.round(time), date };
+}
+
+function normalizeProfile(raw) {
+  if (!raw || typeof raw !== "object") return null;
+
+  let perfs = [];
+  if (Array.isArray(raw.perfs)) {
+    perfs = raw.perfs.map(sanitizePerf).filter(Boolean).slice(0, MAX_PERFS);
+  } else {
+    [[5, raw.p5], [10, raw.p10], [21.0975, raw.phm]].forEach(([dist, time]) => {
+      if (Number(time) > 0) perfs.push({ dist, time: Number(time), date: "" });
+    });
+  }
+
+  const num = (v, min, max) => {
+    const n = Number(v);
+    return Number.isFinite(n) && n >= min && n <= max ? n : 0;
+  };
+
+  return {
+    v: 2,
+    perfs,
+    age: num(raw.age, 5, 100),
+    weight: num(raw.weight, 20, 250),
+    gender: raw.gender === "m" || raw.gender === "w" ? raw.gender : "",
+    weeklyKm: num(raw.weeklyKm, 0, 300),
+    longrunKm: num(raw.longrunKm, 0, 100)
+  };
+}
+
+let memoryProfile = null;
+
+function getStoredProfile() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? normalizeProfile(JSON.parse(stored)) : memoryProfile;
+  } catch {
+    return memoryProfile;
+  }
+}
+
+function storeProfile(data) {
+  memoryProfile = data;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function profilePerfs() {
+  const profile = getStoredProfile();
+  return profile ? profile.perfs : [];
+}
+
+/* ---------- Riegel-Modell ---------- */
+
+function fitRiegelExponent(performances) {
+  const valid = (performances || []).filter(p => p.time > 0 && p.dist > 0);
+  const distinct = new Set(valid.map(p => p.dist.toFixed(3)));
+  if (distinct.size < 2) return RIEGEL_DEFAULT;
+
+  const xs = valid.map(p => Math.log(p.dist));
+  const ys = valid.map(p => Math.log(p.time));
+  const mx = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const my = ys.reduce((a, b) => a + b, 0) / ys.length;
+
+  let num = 0;
+  let den = 0;
+  for (let i = 0; i < xs.length; i++) {
+    num += (xs[i] - mx) * (ys[i] - my);
+    den += (xs[i] - mx) ** 2;
+  }
+
+  if (den <= 0) return RIEGEL_DEFAULT;
+
+  const exponent = num / den;
+  if (!Number.isFinite(exponent)) return RIEGEL_DEFAULT;
+
+  return Math.min(Math.max(exponent, RIEGEL_MIN), RIEGEL_MAX);
+}
+
+function perfWeight(p) {
+  if (!p.date) return 0.8;
+  const days = (Date.now() - new Date(p.date).getTime()) / 864e5;
+  if (!Number.isFinite(days)) return 0.8;
+  if (days <= 90) return 1;
+  if (days <= 365) return 0.6;
+  return 0.3;
+}
+
+function equivalentIndex(time, distance, exponent = RIEGEL_DEFAULT) {
+  return time / Math.pow(distance / 10, exponent);
+}
+
+function advancedTarget(index, distance, exponent = RIEGEL_DEFAULT) {
+  return index * Math.pow(distance / 10, exponent);
+}
+
+function riegelTime(refTime, refDist, targetDist, exponent) {
+  return refTime * Math.pow(targetDist / refDist, exponent);
+}
+
+function buildModel(perfs) {
+  if (!perfs || !perfs.length) return null;
+  const exponent = fitRiegelExponent(perfs);
+  let total = 0;
+  let weightSum = 0;
+  perfs.forEach(p => {
+    const w = perfWeight(p);
+    total += equivalentIndex(p.time, p.dist, exponent) * w;
+    weightSum += w;
+  });
+  const index = weightSum > 0 ? total / weightSum : 0;
+  return index > 0 ? { exponent, index, count: perfs.length } : null;
+}
+
+function sixtyMinutePace(index, exponent) {
+  const distance = 10 * Math.pow(3600 / index, 1 / exponent);
+  return 3600 / distance;
+}
+
+function consistencyIssue(performances) {
+  const sorted = [...performances].sort((a, b) => a.dist - b.dist);
+  for (let i = 1; i < sorted.length; i++) {
+    const a = sorted[i - 1];
+    const b = sorted[i];
+    if (b.dist / a.dist < 1.02) continue;
+    if (b.time / b.dist < a.time / a.dist) {
+      return `Die Pace über ${distName(b.dist)} ist schneller als über ${distName(a.dist)}. Bitte Zeiten prüfen.`;
+    }
+  }
+  return null;
+}
+
+function referencePerf(perfs) {
+  if (!perfs || !perfs.length) return null;
+  const dated = perfs.filter(p => p.date).sort((a, b) => b.date.localeCompare(a.date));
+  if (dated.length) return dated[0];
+  return [...perfs].sort((a, b) => Math.abs(Math.log(a.dist / 10)) - Math.abs(Math.log(b.dist / 10)))[0];
+}
+
+function targetDistances(extra) {
+  const list = [...STANDARD_TARGETS];
+  (extra || []).forEach(d => {
+    if (d > 0 && !list.some(x => sameDist(x, d))) list.push(d);
+  });
+  return list.sort((a, b) => a - b);
+}
+
+function perfSummary(perfs) {
+  return perfs.map(p => `${distName(p.dist)} ${fmtT(p.time)}${p.date ? ` (${fmtDate(p.date)})` : ""}`).join(" · ");
+}
+
+/* ---------- Ausgabe-Helfer ---------- */
+
+function showError(outputId, message) {
+  const output = $(outputId);
+  if (!output) return;
+
+  if (softMode) {
+    const previous = output.querySelector(".result");
+    if (previous) {
+      previous.classList.add("stale");
+      return;
+    }
+  }
+
+  output.hidden = false;
+  output.innerHTML = `
+    <div class="error" role="alert">
+      <strong>Eingabe prüfen:</strong><br>
+      ${message}
+    </div>
+  `;
+}
+
+function clearOutput(outputId) {
+  const output = $(outputId);
+  if (output) output.innerHTML = "";
+}
+
+function markInvalid(el, invalid) {
+  const element = typeof el === "string" ? $(el) : el;
+  if (element) element.classList.toggle("invalid", invalid);
+}
+
+function clearInvalidFields() {
+  document.querySelectorAll(".invalid").forEach(element => {
+    element.classList.remove("invalid");
+  });
+}
+
+const NO_PROFILE_MSG = `Bitte trage zuerst im <b>Profil</b> mindestens eine Leistung ein und speichere es.
+  <br><button class="secondary" type="button" onclick="goToTool('profil','home');openEditor(true)" style="margin-top:8px">Zum Profil</button>`;
+
+/* ---------- Schieberegler ---------- */
+
+function setupSlider(rangeId, numberId) {
+  const range = $(rangeId);
+  const number = $(numberId);
+
+  if (!range || !number) return;
+
+  function updateFromRange() {
+    number.value = range.value;
+    number.classList.remove("invalid");
+  }
+
+  function updateFromNumber() {
+    const value = Number(number.value);
+
+    if (number.value === "" || !Number.isFinite(value)) {
+      number.classList.add("invalid");
+      return;
+    }
+
+    const corrected = Math.min(Number(range.max), Math.max(Number(range.min), value));
+    range.value = corrected;
+    number.classList.remove("invalid");
+  }
+
+  function clampOnCommit() {
+    updateFromNumber();
+    if (!number.classList.contains("invalid")) number.value = range.value;
+  }
+
+  range.addEventListener("input", updateFromRange);
+  number.addEventListener("input", updateFromNumber);
+  number.addEventListener("change", clampOnCommit);
+
+  updateFromRange();
+}
+
+function setSlider(id, value) {
+  const range = $(`${id}Range`);
+  const clamped = Math.min(Number(range.max), Math.max(Number(range.min), value));
+  range.value = clamped;
+  $(id).value = range.value;
+}
+
+function setupScenarioSliders() {
+  ["scVol", "scNewVol", "scThresh", "scNewThresh", "scLong", "scNewLong", "scWeeks", "scWeight"]
+    .forEach(id => setupSlider(`${id}Range`, id));
+
+  $("scWeightRange").addEventListener("input", updateScenarioWeightContext);
+  $("scWeight").addEventListener("input", updateScenarioWeightContext);
+  $("scWeight").addEventListener("change", updateScenarioWeightContext);
+}
+
+/* ---------- Profil-Formular ---------- */
+
+function perfRowHtml() {
+  return `
+    <div>
+      <label>Distanz</label>
+      <select class="pr-dist" aria-label="Distanz">${distOptionsHtml()}</select>
+      <input class="pr-custom dist-custom" type="number" step="0.01" min="0.1" max="250" placeholder="Distanz in km" aria-label="Eigene Distanz in km" hidden>
+    </div>
+    <div>
+      <label>Zeit</label>
+      <input class="pr-time" placeholder="z. B. 45:00" aria-label="Zeit">
+    </div>
+    <div>
+      <label>Datum (optional)</label>
+      <input class="pr-date" type="date" aria-label="Datum">
+    </div>
+    <button class="secondary pr-remove" type="button" aria-label="Leistung entfernen" title="Entfernen">✕</button>
+  `;
+}
+
+function addPerfRow(perf) {
+  const container = $("perfRows");
+  if (container.children.length >= MAX_PERFS) return;
+
+  const row = document.createElement("div");
+  row.className = "perf-row";
+  row.innerHTML = perfRowHtml();
+  container.appendChild(row);
+
+  const select = row.querySelector(".pr-dist");
+  setDistOn(select, perf ? perf.dist : 10);
+  if (perf) {
+    row.querySelector(".pr-time").value = fmtT(perf.time);
+    row.querySelector(".pr-date").value = perf.date || "";
+  }
+
+  row.querySelector(".pr-remove").addEventListener("click", () => {
+    row.remove();
+    if (!$("perfRows").children.length) addPerfRow();
+    updateAddButton();
+  });
+
+  updateAddButton();
+}
+
+function updateAddButton() {
+  $("addPerfButton").disabled = $("perfRows").children.length >= MAX_PERFS;
+}
+
+function readPerfRows() {
+  const perfs = [];
+  const today = new Date().toISOString().slice(0, 10);
+
+  for (const row of document.querySelectorAll("#perfRows .perf-row")) {
+    const timeInput = row.querySelector(".pr-time");
+    const select = row.querySelector(".pr-dist");
+    const dateInput = row.querySelector(".pr-date");
+    const custom = row.querySelector(".pr-custom");
+
+    if (!timeInput.value.trim()) continue;
+
+    const dist = readDistFrom(select);
+    const time = timeToSec(timeInput.value);
+
+    if (!(dist > 0 && dist <= 250)) {
+      markInvalid(custom, true);
+      return { error: "Bitte eine gültige Distanz (0,1–250 km) eingeben." };
+    }
+
+    if (!(time > 0)) {
+      markInvalid(timeInput, true);
+      return { error: `Die Zeit „${escapeHtml(timeInput.value)}" ist ungültig. Format z. B. 45:00 oder 1:40:00.` };
+    }
+
+    const pace = time / dist;
+    if (pace < 150 || pace > 1200) {
+      markInvalid(timeInput, true);
+      return { error: `Die Zeit über ${distName(dist)} ergibt ${fmt(pace)}/km – bitte prüfen.` };
+    }
+
+    if (dateInput.value && dateInput.value > today) {
+      markInvalid(dateInput, true);
+      return { error: "Das Datum einer Leistung liegt in der Zukunft." };
+    }
+
+    perfs.push({ dist, time: Math.round(time), date: dateInput.value || "" });
+  }
+
+  return { perfs };
+}
+
+function fillProfileForm(data) {
+  $("perfRows").innerHTML = "";
+  (data && data.perfs.length ? data.perfs : [null]).forEach(p => addPerfRow(p));
+
+  $("profAge").value = data && data.age > 0 ? data.age : "";
+  $("profWeight").value = data && data.weight > 0 ? data.weight : "";
+  $("profGender").value = data && data.gender ? data.gender : "";
+  $("profWeekly").value = data && data.weeklyKm > 0 ? data.weeklyKm : "";
+  $("profLong").value = data && data.longrunKm > 0 ? data.longrunKm : "";
+}
+
+function showProfileMessage(html) {
+  $("profileMsg").hidden = false;
+  $("profileMsg").innerHTML = html;
+}
+
+function saveProfile() {
+  clearInvalidFields();
+
+  const result = readPerfRows();
+  if (result.error) {
+    showProfileMessage(`<div class="error" role="alert">${result.error}</div>`);
+    return;
+  }
+
+  const read = id => ($(id).value.trim() === "" ? 0 : Number($(id).value));
+  const age = read("profAge");
+  const weight = read("profWeight");
+  const weeklyKm = read("profWeekly");
+  const longrunKm = read("profLong");
+
+  const checks = [
+    ["profAge", age, 5, 100, "Bitte ein gültiges Alter zwischen 5 und 100 eingeben."],
+    ["profWeight", weight, 20, 250, "Bitte ein gültiges Gewicht zwischen 20 und 250 kg eingeben."],
+    ["profWeekly", weeklyKm, 0, 300, "Der Wochenumfang muss zwischen 0 und 300 km liegen."],
+    ["profLong", longrunKm, 0, 100, "Der längste Lauf muss zwischen 0 und 100 km liegen."]
+  ];
+
+  for (const [id, value, min, max, msg] of checks) {
+    if (value && (!Number.isFinite(value) || value < min || value > max)) {
+      markInvalid(id, true);
+      showProfileMessage(`<div class="error" role="alert">${msg}</div>`);
+      return;
+    }
+  }
+
+  if (weeklyKm > 0 && longrunKm > weeklyKm) {
+    markInvalid("profLong", true);
+    showProfileMessage(`<div class="error" role="alert">Der längste Lauf ist größer als der Wochenumfang.</div>`);
+    return;
+  }
+
+  const issue = consistencyIssue(result.perfs);
+  if (issue) {
+    showProfileMessage(`<div class="error" role="alert">${issue}</div>`);
+    return;
+  }
+
+  const data = normalizeProfile({
+    perfs: result.perfs,
+    age, weight, weeklyKm, longrunKm,
+    gender: $("profGender").value
+  });
+
+  const saved = storeProfile(data);
+  applyProfile(data);
+
+  if (data.perfs.length) {
+    $("profileEditor").open = false;
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  }
+
+  const hint = data.perfs.length === 0
+    ? ` <span class="small">Noch keine Leistung eingetragen – die Rechner brauchen mindestens eine.</span>`
+    : data.perfs.length === 1
+      ? ` <span class="small">Tipp: Mit einer zweiten Distanz wird das Modell individueller.</span>`
+      : "";
+
+  showProfileMessage(saved
+    ? `<span class="good">Profil gespeichert und mit den Rechnern synchronisiert.</span>${hint}`
+    : `<span class="good">Profil übernommen.</span> <span class="small">Dauerhaftes Speichern ist in diesem Browser-Modus nicht möglich – die Werte gelten nur bis zum Schließen.</span>`);
+}
+
+function fillExampleProfile() {
+  const d = daysAgo => new Date(Date.now() - daysAgo * 864e5).toISOString().slice(0, 10);
+  fillProfileForm(normalizeProfile({
+    perfs: [
+      { dist: 5, time: 23 * 60 + 30, date: d(40) },
+      { dist: 10, time: 49 * 60, date: d(20) }
+    ],
+    age: 38, weight: 70, gender: "w", weeklyKm: 35, longrunKm: 15
+  }));
+  showProfileMessage(`<span class="small">Beispielwerte eingesetzt – mit „Profil speichern" übernehmen oder durch eigene Werte ersetzen.</span>`);
+}
+
+function updateHome(data) {
+  renderHero(data);
+}
+
+function applyProfile(data) {
+  updateHome(data);
+  updateBasisNotes(data);
+  updateScenarioWeightContext();
+  if (!data) return;
+
+  const ref = referencePerf(data.perfs);
+  if (ref) {
+    setDistOn($("rd"), ref.dist);
+    $("rt").value = fmtT(ref.time);
+
+    if (ref.dist >= 3 && ref.dist <= 42.2) {
+      setDistOn($("agDist"), ref.dist);
+      $("agTime").value = fmtT(ref.time);
+    }
+  }
+
+  if (data.age > 0) $("agAge").value = data.age;
+  if (data.gender) $("agGender").value = data.gender;
+
+  if (data.weeklyKm > 0) {
+    setSlider("scVol", Math.round(data.weeklyKm));
+    setSlider("scNewVol", Math.round(Math.min(data.weeklyKm * 1.15, data.weeklyKm * 2)));
+    $("tapVol").value = Math.round(data.weeklyKm);
+    $("acwrChronic").value = Math.round(data.weeklyKm);
+  }
+
+  if (data.longrunKm > 0) {
+    setSlider("scLong", Math.round(data.longrunKm));
+    setSlider("scNewLong", Math.round(data.longrunKm * 1.15));
+  }
+}
+
+function updateBasisNotes(data) {
+  const perfs = data ? data.perfs : [];
+  const text = perfs.length
+    ? `Basis: ${perfSummary(perfs)}`
+    : "Noch keine Leistungen im Profil – bitte zuerst dort eintragen.";
+  $("zonesBasis").textContent = text;
+  $("scBasis").textContent = text;
+}
+
+function updateScenarioWeightContext() {
+  const out = $("scWeightContext");
+  if (!out) return;
+
+  const stored = getStoredProfile();
+  const currentWeight = stored && stored.weight > 0 ? stored.weight : null;
+  const change = Number($("scWeight").value) || 0;
+
+  if (currentWeight) {
+    const target = Math.round((currentWeight + change) * 10) / 10;
+    out.textContent = `Profilgewicht: ${currentWeight} kg → Szenario-Zielgewicht: ${target} kg`;
+  } else {
+    out.textContent = "Kein Gewicht im Profil hinterlegt – reine Änderung in kg wird verwendet.";
+  }
+}
+
+function loadProfile() {
+  const data = getStoredProfile();
+  fillProfileForm(data);
+  applyProfile(data);
+  $("profileEditor").open = !(data && data.perfs.length);
+
+  if (data) storeProfile(data);
+}
+
+/* ---------- Sichern & Übertragen ---------- */
+
+function dataMessage(html, isError) {
+  $("dataMsg").innerHTML = isError
+    ? `<div class="error" role="alert">${html}</div>`
+    : `<p class="good" style="margin-top:10px">${html}</p>`;
+}
+
+function exportPayload() {
+  const data = getStoredProfile();
+  if (!data || (!data.perfs.length && !data.age && !data.weight)) return null;
+  return JSON.stringify({ app: "RunPotential", ...data });
+}
+
+async function exportCode() {
+  const payload = exportPayload();
+  if (!payload) {
+    dataMessage("Es ist noch kein Profil gespeichert.", true);
+    return;
+  }
+
+  $("dataCode").value = payload;
+
+  try {
+    await navigator.clipboard.writeText(payload);
+    dataMessage("Code erzeugt und in die Zwischenablage kopiert.");
+  } catch {
+    $("dataCode").select();
+    dataMessage("Code erzeugt – bitte markierten Text manuell kopieren.");
+  }
+}
+
+function exportFile() {
+  const payload = exportPayload();
+  if (!payload) {
+    dataMessage("Es ist noch kein Profil gespeichert.", true);
+    return;
+  }
+  $("dataCode").value = payload;
+  $("dataCode").select();
+  dataMessage("In dieser eingebetteten Kopie kann keine Datei gespeichert werden. Der Code steht oben im Feld – kopiere ihn bei Bedarf.");
+}
+
+function importFromText(text) {
+  let raw;
+  try {
+    raw = JSON.parse(String(text).trim());
+  } catch {
+    dataMessage("Der Code konnte nicht gelesen werden. Bitte den vollständigen Code einfügen.", true);
+    return;
+  }
+
+  if (!raw || (raw.app && raw.app !== "RunPotential")) {
+    dataMessage("Das ist kein RunPotential-Profil.", true);
+    return;
+  }
+
+  const data = normalizeProfile(raw);
+  if (!data || (!data.perfs.length && !data.age && !data.weight)) {
+    dataMessage("Im Code wurden keine gültigen Profildaten gefunden.", true);
+    return;
+  }
+
+  const issue = consistencyIssue(data.perfs);
+  if (issue) {
+    dataMessage(`Import abgebrochen: ${issue}`, true);
+    return;
+  }
+
+  storeProfile(data);
+  fillProfileForm(data);
+  applyProfile(data);
+  if (data.perfs.length) $("profileEditor").open = false;
+  window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  dataMessage(`Profil importiert: ${data.perfs.length} Leistung${data.perfs.length === 1 ? "" : "en"}.`);
+}
+
+function importCode() {
+  const text = $("dataCode").value;
+  if (!text.trim()) {
+    dataMessage("Bitte zuerst einen Profil-Code in das Feld einfügen.", true);
+    return;
+  }
+  importFromText(text);
+}
+
+function importFile(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  if (file.size > 100000) {
+    dataMessage("Die Datei ist zu groß für ein RunPotential-Profil.", true);
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => importFromText(reader.result);
+  reader.onerror = () => dataMessage("Die Datei konnte nicht gelesen werden.", true);
+  reader.readAsText(file);
+  event.target.value = "";
+}
+
+let resetArmed = null;
+
+function resetProfile() {
+  const button = $("resetProfileButton");
+
+  if (!resetArmed) {
+    button.textContent = "Wirklich löschen?";
+    resetArmed = setTimeout(() => {
+      button.textContent = "Profil löschen";
+      resetArmed = null;
+    }, 4000);
+    return;
+  }
+
+  clearTimeout(resetArmed);
+  resetArmed = null;
+  button.textContent = "Profil löschen";
+
+  memoryProfile = null;
+  try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignorieren */ }
+
+  fillProfileForm(null);
+  applyProfile(null);
+  $("dataCode").value = "";
+  $("profileMsg").hidden = true;
+  openEditor(false);
+  dataMessage("Profil gelöscht.");
+}
+
+/* ---------- Pace ---------- */
+
+function calculatePace() {
+
+  const distance = Number($("pd").value);
+  const unit = $("pu").value;
+  const hours = Number($("ph").value) || 0;
+  const minutes = Number($("pm").value) || 0;
+  const seconds = Number($("ps").value) || 0;
+
+  if (!Number.isFinite(distance) || distance <= 0) {
+    showError("paceOut", "Bitte gib eine Distanz größer als 0 ein.");
+    return;
+  }
+
+  if (hours < 0 || minutes < 0 || seconds < 0 || seconds >= 60) {
+    showError("paceOut", "Bitte gib eine gültige Zeit ein. Sekunden müssen zwischen 0 und 59 liegen.");
+    return;
+  }
+
+  const kilometers = distance * (unit === "mi" ? 1.609344 : 1);
+  const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+
+  if (totalSeconds <= 0) {
+    showError("paceOut", "Die Gesamtzeit muss größer als 0 sein.");
+    return;
+  }
+
+  const pace = totalSeconds / kilometers;
+  const pacePerMile = pace * 1.609344;
+
+  const splitRows = [1, 5, 10, 21.0975, 42.195]
+    .filter(d => d <= kilometers * 1.0001 || d === 1)
+    .map(d => `<tr><td>${distName(d)}</td><td>${fmtT(pace * d)}</td></tr>`)
+    .join("");
+
+  $("paceOut").innerHTML = `
+    <div class="result">
+      <div class="big">${fmt(pace)}/km</div>
+      <p>${speedFromPace(pace).toFixed(2)} km/h · ${fmt(pacePerMile)}/Meile · ${fmtKm(kilometers)} km</p>
+
+      <table>
+        <tr><th>Distanz</th><th>Zwischenzeit</th></tr>
+        ${splitRows}
+      </table>
+    </div>
+  `;
+}
+
+/* ---------- Prognose ---------- */
+
+function predictRace() {
+
+  const distance = readDistFrom($("rd"));
+  const referenceTime = timeToSec($("rt").value);
+
+  if (!(distance > 0) || referenceTime <= 0) {
+    showError("raceOut", "Bitte gib eine gültige Referenzdistanz und Referenzzeit ein (z. B. 45:00 oder 1:40:00).");
+    return;
+  }
+
+  const perfs = profilePerfs();
+  const exponent = fitRiegelExponent(perfs);
+  const distinct = new Set(perfs.map(p => p.dist.toFixed(3))).size;
+
+  const profile = getStoredProfile();
+  const gender = profile ? profile.gender : "";
+  const age = profile ? profile.age : 0;
+
+  const rows = targetDistances([distance, ...perfs.map(p => p.dist)]).map(target => {
+    const central = riegelTime(referenceTime, distance, target, exponent);
+    const isRef = sameDist(target, distance);
+    const long = target > 20;
+
+    return `
+      <tr${isRef ? ' style="background:rgba(242,183,5,.08)"' : ""}>
+        <td>${distName(target)}${isRef ? ' <span class="small">(Referenz)</span>' : ""}</td>
+        <td>${fmt(central * .985, long)}</td>
+        <td><b>${fmt(central, long)}</b></td>
+        <td>${fmt(central * 1.015, long)}</td>
+        <td>${fmt(central / target)}/km</td>
+        <td>${ratingBadgeHtml(gender, age, target, central)}</td>
+      </tr>
+    `;
+  }).join("");
+
+  const exponentNote = distinct >= 2
+    ? `geschätzt aus ${perfs.length} Leistungen im Profil`
+    : `Standardwert – für eine individuelle Schätzung mindestens zwei Distanzen im Profil speichern`;
+
+  const ratingNote = age > 0 && gender
+    ? ""
+    : `<p class="small">Trage Alter und Geschlecht im Profil ein, um die Sterne-Bewertung zu sehen.</p>`;
+
+  $("raceOut").innerHTML = `
+    <div class="result">
+      <p class="small">
+        Riegel-Exponent: <b>${exponent.toFixed(3)}</b> – ${exponentNote}
+      </p>
+
+      <div class="table-scroll">
+        <table>
+          <tr>
+            <th>Distanz</th>
+            <th>untere Spanne</th>
+            <th>Modell</th>
+            <th>obere Spanne</th>
+            <th>Pace</th>
+            <th>Bewertung</th>
+          </tr>
+          ${rows}
+        </table>
+      </div>
+      ${ratingNote}
+      <p class="small">
+        Marathon-Prognosen aus kurzen Referenzen setzen passendes Marathontraining
+        (Umfang, Longruns) voraus und fallen sonst oft zu optimistisch aus.
+      </p>
+      <p class="small">
+        Bewertung: Näherung ans WMA-Age-Grading (0–5 Sterne, 3 km bis Marathon).
+      </p>
+    </div>
+  `;
+}
+
+/* ---------- Intervalle ---------- */
+
+function calculateIntervals() {
+
+  const repetitions = Number($("reps").value);
+  const fastDistance = Number($("fastD").value);
+  const fastPace = timeToSec($("fastP").value);
+  const recoveryDistance = Number($("recD").value) || 0;
+  const recoveryPace = timeToSec($("recP").value);
+
+  if (!Number.isInteger(repetitions) || repetitions < 1) {
+    showError("intervalOut", "Die Anzahl der Wiederholungen muss eine ganze Zahl ab 1 sein.");
+    return;
+  }
+
+  if (!Number.isFinite(fastDistance) || fastDistance <= 0) {
+    showError("intervalOut", "Die schnelle Strecke muss größer als 0 sein.");
+    return;
+  }
+
+  if (fastPace <= 0) {
+    showError("intervalOut", "Bitte gib eine gültige schnelle Pace ein, zum Beispiel 4:00.");
+    return;
+  }
+
+  if (!Number.isFinite(recoveryDistance) || recoveryDistance < 0) {
+    showError("intervalOut", "Die Erholungsstrecke darf nicht negativ sein.");
+    return;
+  }
+
+  if (recoveryDistance > 0 && recoveryPace <= 0) {
+    showError("intervalOut", "Bitte gib eine gültige Erholungspace ein.");
+    return;
+  }
+
+  const recoveryCount = Math.max(0, repetitions - 1);
+
+  const fastTime = repetitions * fastDistance * fastPace;
+  const recoveryTime = recoveryCount * recoveryDistance * recoveryPace;
+  const totalDistance = repetitions * fastDistance + recoveryCount * recoveryDistance;
+  const totalTime = fastTime + recoveryTime;
+
+  $("intervalOut").innerHTML = `
+    <div class="result">
+      <div class="grid">
+        <div class="kpi">
+          <span class="muted">Schnell (${repetitions}×)</span>
+          <strong>${fmt(fastTime)}</strong>
+          <span>${fmtKm(repetitions * fastDistance)} km · je ${fmt(fastDistance * fastPace)}</span>
+        </div>
+
+        <div class="kpi">
+          <span class="muted">Erholung (${recoveryCount}×)</span>
+          <strong>${fmt(recoveryTime)}</strong>
+          <span>${fmtKm(recoveryCount * recoveryDistance)} km${recoveryDistance > 0 ? ` · je ${fmt(recoveryDistance * recoveryPace)}` : ""}</span>
+        </div>
+
+        <div class="kpi">
+          <span class="muted">Gesamt</span>
+          <strong>${fmt(totalTime)}</strong>
+          <span>${fmtKm(totalDistance)} km</span>
+        </div>
+      </div>
+
+      <p><b>Gesamtpace:</b> ${fmt(totalTime / totalDistance)}/km</p>
+      <p><b>Belastungsanteil:</b> ${(fastTime / totalTime * 100).toFixed(1)} %</p>
+      <p class="small">Ohne Ein- und Auslaufen; nach der letzten Wiederholung wird keine Pause gezählt.</p>
+    </div>
+  `;
+}
+
+/* ---------- Leistungsmodell & Zonen ---------- */
+
+function calculateAdvancedProfile() {
+  clearInvalidFields();
+
+  const perfs = profilePerfs();
+  const model = buildModel(perfs);
+
+  if (!model) {
+    showError("zonesOut", NO_PROFILE_MSG);
+    return;
+  }
+
+  const { index, exponent } = model;
+
+  const thresholdTestRaw = $("lth").value.trim();
+  const thresholdTest = timeToSec(thresholdTestRaw);
+  const thresholdDistance = Number($("lthd").value);
+
+  if (thresholdTestRaw && (thresholdTest <= 0 || !(thresholdDistance > 0))) {
+    markInvalid("lth", thresholdTest <= 0);
+    markInvalid("lthd", !(thresholdDistance > 0));
+    showError("zonesOut", "Für den Schwellen-Test bitte gültige Zeit und Distanz angeben – oder beide Felder leer lassen.");
+    return;
+  }
+
+  const usedTest = thresholdTest > 0 && thresholdDistance > 0;
+  const threshold = usedTest
+    ? thresholdTest / thresholdDistance
+    : sixtyMinutePace(index, exponent);
+
+  const testNote = usedTest && (thresholdTest < 20 * 60 || thresholdTest > 70 * 60)
+    ? `<p class="small">Hinweis: Der Test dauerte ${fmt(thresholdTest)} – für eine Schwellenschätzung sind 20–60 Minuten ideal.</p>`
+    : "";
+
+  const raceRows = targetDistances(perfs.map(p => p.dist)).map(distance => {
+    const central = advancedTarget(index, distance, exponent);
+    const long = distance > 20;
+
+    return `
+      <tr>
+        <td>${distName(distance)}</td>
+        <td>${fmt(central * .985, long)}</td>
+        <td><b>${fmt(central, long)}</b></td>
+        <td>${fmt(central * 1.015, long)}</td>
+      </tr>
+    `;
+  }).join("");
+
+  const pace3 = advancedTarget(index, 3, exponent) / 3;
+  const pace5 = advancedTarget(index, 5, exponent) / 5;
+  const marathonPace = advancedTarget(index, 42.195, exponent) / 42.195;
+
+  const zones = [
+    ["Regeneration", "z-reg", marathonPace * 1.25, marathonPace * 1.40],
+    ["Grundlagenausdauer 1", "z-easy", marathonPace * 1.12, marathonPace * 1.25],
+    ["Grundlagenausdauer 2", "z-aero", marathonPace * 1.03, marathonPace * 1.12],
+    ["Marathonpace", "z-marathon", marathonPace * .985, marathonPace * 1.03],
+    ["Schwellentempo", "z-thresh", threshold * .98, threshold * 1.02],
+    ["VO₂max-Intervalle", "z-vo2", pace3, pace5]
+  ];
+
+  $("zonesOut").innerHTML = `
+    <div class="result">
+      <h3>Dein kombiniertes Leistungsprofil</h3>
+
+      <div class="grid">
+        <div class="kpi">
+          <span class="muted">Modellierte 10-km-Zeit</span>
+          <strong>${fmt(index)}</strong>
+        </div>
+
+        <div class="kpi">
+          <span class="muted">Schwellenpace ${usedTest ? "(aus Test)" : "(≈ 60-min-Pace)"}</span>
+          <strong>${fmt(threshold)}/km</strong>
+        </div>
+
+        <div class="kpi">
+          <span class="muted">Riegel-Exponent</span>
+          <strong>${exponent.toFixed(3)}</strong>
+        </div>
+      </div>
+      ${testNote}
+
+      <h3 style="margin-top:18px">Wettkampfpotenzial</h3>
+
+      <div class="table-scroll">
+        <table>
+          <tr>
+            <th>Distanz</th>
+            <th>untere Spanne</th>
+            <th>Modell</th>
+            <th>obere Spanne</th>
+          </tr>
+          ${raceRows}
+        </table>
+      </div>
+
+      <h3 style="margin-top:18px">Trainingsbereiche</h3>
+
+      <div class="table-scroll">
+        <table>
+          <tr>
+            <th>Bereich</th>
+            <th>schneller</th>
+            <th>langsamer</th>
+          </tr>
+
+          ${zones.map(zone => `
+            <tr>
+              <td>
+                <span class="zone-badge ${zone[1]}">${zone[0]}</span>
+              </td>
+              <td>${fmt(zone[2])}/km</td>
+              <td>${fmt(zone[3])}/km</td>
+            </tr>
+          `).join("")}
+        </table>
+      </div>
+      <p class="small">Grundlagen- und Regenerationsbereiche sind relativ zur modellierten Marathonpace, VO₂max entspricht etwa 3-km- bis 5-km-Renntempo. Neuere Leistungen werden stärker gewichtet.</p>
+    </div>
+  `;
+}
+
+/* ---------- Szenario ---------- */
+
+function calculateScenario() {
+  clearInvalidFields();
+
+  const perfs = profilePerfs();
+  const model = buildModel(perfs);
+
+  if (!model) {
+    showError("scenarioOut", NO_PROFILE_MSG);
+    return;
+  }
+
+  const volume = Number($("scVol").value);
+  const newVolume = Number($("scNewVol").value);
+  const threshold = Number($("scThresh").value);
+  const newThreshold = Number($("scNewThresh").value);
+  const longrun = Number($("scLong").value);
+  const newLongrun = Number($("scNewLong").value);
+  const weeks = Number($("scWeeks").value);
+  const weightChange = Number($("scWeight").value) || 0;
+
+  const numericValues = [
+    ["scVol", volume, "Der aktuelle Wochenumfang"],
+    ["scNewVol", newVolume, "Der neue Wochenumfang"],
+    ["scThresh", threshold, "Die aktuellen Schwellen-Einheiten"],
+    ["scNewThresh", newThreshold, "Die neuen Schwellen-Einheiten"],
+    ["scLong", longrun, "Der aktuelle Longrun"],
+    ["scNewLong", newLongrun, "Der neue Longrun"],
+    ["scWeeks", weeks, "Der Zeitraum"]
+  ];
+
+  for (const [id, value, label] of numericValues) {
+    if (!Number.isFinite(value) || value < 0) {
+      showError("scenarioOut", `${label} muss eine gültige Zahl ab 0 sein.`);
+      markInvalid(id, true);
+      return;
+    }
+  }
+
+  if (weeks < 1) {
+    showError("scenarioOut", "Der Zeitraum muss mindestens 1 Woche betragen.");
+    markInvalid("scWeeks", true);
+    return;
+  }
+
+  if (volume > 0 && newVolume > volume * 2) {
+    showError("scenarioOut", "Der neue Wochenumfang ist mehr als doppelt so hoch wie der aktuelle Umfang.");
+    markInvalid("scNewVol", true);
+    return;
+  }
+
+  if (longrun > 0 && newLongrun > longrun * 2) {
+    showError("scenarioOut", "Der neue Longrun ist mehr als doppelt so lang wie der aktuelle Longrun.");
+    markInvalid("scNewLong", true);
+    return;
+  }
+
+  const { exponent, index: baseIndex } = model;
+
+  const volumeChange = (newVolume - volume) / Math.max(volume, 1);
+  const thresholdChange = (newThreshold - threshold) / Math.max(threshold, 1);
+  const longrunChange = (newLongrun - longrun) / Math.max(longrun, 1);
+
+  const horizon = Math.min(1, weeks / 12);
+
+  const volumeFactor = Math.max(-.04, Math.min(.02, -.035 * volumeChange * horizon));
+  const thresholdFactor = Math.max(-.035, Math.min(.015, -.018 * thresholdChange * horizon));
+  const longrunFactor = Math.max(-.02, Math.min(.01, -.010 * longrunChange * horizon));
+  const weightFactor = Math.max(-.03, Math.min(.03, .006 * weightChange));
+
+  const totalFactor = Math.max(
+    .90,
+    Math.min(1.08, 1 + volumeFactor + thresholdFactor + longrunFactor + weightFactor)
+  );
+
+  const newIndex = baseIndex * totalFactor;
+  const changePercent = (totalFactor - 1) * 100;
+
+  const profile = getStoredProfile();
+  const gender = profile ? profile.gender : "";
+  const age = profile ? profile.age : 0;
+
+  const rows = targetDistances(perfs.map(p => p.dist)).map(distance => {
+    const oldTime = advancedTarget(baseIndex, distance, exponent);
+    const newTime = advancedTarget(newIndex, distance, exponent);
+    const long = distance > 20;
+
+    return `
+      <tr>
+        <td>${distName(distance)}</td>
+        <td>${fmt(oldTime, long)}</td>
+        <td><b>${fmt(newTime, long)}</b></td>
+        <td>${ratingBadgeHtml(gender, age, distance, newTime)}</td>
+      </tr>
+    `;
+  }).join("");
+
+  const ratingNote = age > 0 && gender
+    ? ""
+    : `<p class="small">Trage Alter und Geschlecht im Profil ein, um die Sterne-Bewertung zu sehen.</p>`;
+
+  const direction = Math.abs(changePercent) < 0.05 ? "unverändert" : changePercent < 0 ? "schneller" : "langsamer";
+
+  $("scenarioOut").innerHTML = `
+    <div class="result">
+      <h3>Modellszenario nach ${weeks} Wochen</h3>
+
+      <div class="grid">
+        <div class="kpi">
+          <span class="muted">Ausgang 10 km (Modell)</span>
+          <strong>${fmt(baseIndex)}</strong>
+        </div>
+
+        <div class="kpi">
+          <span class="muted">Szenario 10 km</span>
+          <strong>${fmt(newIndex)}</strong>
+        </div>
+
+        <div class="kpi">
+          <span class="muted">Veränderung</span>
+          <strong>${Math.abs(changePercent).toFixed(1)} %</strong>
+          <span>${direction}</span>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <tr>
+            <th>Distanz</th>
+            <th>Ausgang</th>
+            <th>Szenario</th>
+            <th>Bewertung</th>
+          </tr>
+          ${rows}
+        </table>
+      </div>
+      ${ratingNote}
+
+      <p class="small">
+        Ausgangswerte kombinieren alle Leistungen aus dem Profil (Riegel-Exponent ${exponent.toFixed(3)}).
+        Bewertung: Näherung ans WMA-Age-Grading (0–5 Sterne).
+      </p>
+
+      <p class="small">
+        Hinweis: Das Szenario ist ein vereinfachtes Modell. Es berücksichtigt
+        keine Verletzungen, Ermüdung, Trainingsqualität oder individuellen
+        Reaktionen auf Belastung.
+      </p>
+    </div>
+  `;
+}
+
+function resetScenario() {
+  const profile = getStoredProfile();
+  const vol = profile && profile.weeklyKm > 0 ? Math.round(profile.weeklyKm) : 40;
+  const lr = profile && profile.longrunKm > 0 ? Math.round(profile.longrunKm) : 15;
+
+  setSlider("scVol", vol);
+  setSlider("scNewVol", Math.round(vol * 1.15));
+  setSlider("scThresh", 1);
+  setSlider("scNewThresh", 2);
+  setSlider("scLong", lr);
+  setSlider("scNewLong", Math.round(lr * 1.15));
+  setSlider("scWeeks", 8);
+  setSlider("scWeight", 0);
+
+  clearInvalidFields();
+  updateScenarioWeightContext();
+  runLive("scenario", false);
+}
+
+/* ---------- Minetti / Age-Grading ---------- */
+
+function minettiCost(gradeFraction) {
+  const g = Math.max(-0.45, Math.min(0.45, gradeFraction));
+  return 155.4 * Math.pow(g, 5) - 30.4 * Math.pow(g, 4) - 43.3 * Math.pow(g, 3)
+    + 46.3 * Math.pow(g, 2) + 19.5 * g + 3.6;
+}
+
+const AG_STANDARDS = {
+  m: { 5: 12.62 * 60, 10: 26.18 * 60, 21.0975: 57.52 * 60, 42.195: 2 * 3600 + 1 * 60 + 9 },
+  w: { 5: 14.10 * 60, 10: 29.02 * 60, 21.0975: 62.87 * 60, 42.195: 2 * 3600 + 9 * 60 + 56 }
+};
+
+function agStandard(gender, km) {
+  const standards = AG_STANDARDS[gender];
+  if (!standards || !(km >= 3 - 1e-9) || km > 42.195 * 1.001) return null;
+
+  const pts = Object.keys(standards).map(Number).sort((a, b) => a - b).map(d => [d, standards[d]]);
+  const exact = pts.find(([d]) => sameDist(d, km));
+  if (exact) return exact[1];
+
+  let a = pts[0];
+  let b = pts[1];
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (km >= pts[i][0] && km <= pts[i + 1][0]) {
+      a = pts[i];
+      b = pts[i + 1];
+      break;
+    }
+  }
+
+  const slope = Math.log(b[1] / a[1]) / Math.log(b[0] / a[0]);
+  return a[1] * Math.pow(km / a[0], slope);
+}
+
+function ageFactor(age) {
+  if (age <= 30) return 1;
+  const d = age - 30;
+  return Math.max(0.25, 1 - 0.0008 * Math.pow(d, 1.6));
+}
+
+function ageGradePercent(gender, age, distanceKm, timeSec) {
+  if (!gender || !(age > 0) || !(timeSec > 0)) return null;
+  const standard = agStandard(gender, distanceKm);
+  if (!standard) return null;
+  const ageStandard = standard / ageFactor(age);
+  return (ageStandard / timeSec) * 100;
+}
+
+const AGE_GRADE_ANCHORS = [
+  [0, 0],
+  [40, 1],
+  [50, 2],
+  [60, 3],
+  [70, 4],
+  [80, 4.5],
+  [90, 5],
+  [100, 5]
+];
+
+function starsFromPercent(percent) {
+  const p = Math.max(0, Math.min(100, percent));
+  for (let i = 0; i < AGE_GRADE_ANCHORS.length - 1; i++) {
+    const [p0, s0] = AGE_GRADE_ANCHORS[i];
+    const [p1, s1] = AGE_GRADE_ANCHORS[i + 1];
+    if (p >= p0 && p <= p1) {
+      const t = (p - p0) / (p1 - p0);
+      return Math.round((s0 + t * (s1 - s0)) * 2) / 2;
+    }
+  }
+  return 5;
+}
+
+function ageGradeBand(percent) {
+  if (percent < 40) return "Einsteiger";
+  if (percent < 50) return "Fortgeschritten";
+  if (percent < 60) return "Solider Vereinsläufer";
+  if (percent < 70) return "Regionalklasse";
+  if (percent < 80) return "Nationale Klasse";
+  if (percent < 90) return "Weltklasse";
+  return "Weltrekord-Nähe";
+}
+
+function starRatingHtml(stars, sizePx) {
+  const fillPercent = Math.max(0, Math.min(100, (stars / 5) * 100));
+  const size = sizePx || 18;
+  return `<span class="star-rating" style="--fill:${fillPercent}%;font-size:${size}px" aria-label="${stars} von 5 Sternen">
+    <span class="star-bg" aria-hidden="true">★★★★★</span>
+    <span class="star-fg" aria-hidden="true">★★★★★</span>
+  </span>`;
+}
+
+function ratingBadgeHtml(gender, age, distanceKm, timeSec) {
+  const percent = ageGradePercent(gender, age, distanceKm, timeSec);
+  if (percent === null) return `<span class="muted">–</span>`;
+  const stars = starsFromPercent(percent);
+  return `<span title="${percent.toFixed(1)} % Altersklassen-Wertung – ${ageGradeBand(percent)}">${starRatingHtml(stars, 16)}</span>
+    <br><span class="small">${percent.toFixed(0)} %</span>`;
+}
+
+function calcAgeGrade() {
+
+  const gender = $("agGender").value;
+  const age = Number($("agAge").value);
+  const dist = readDistFrom($("agDist"));
+  const time = timeToSec($("agTime").value);
+
+  if ($("agAge").value.trim() === "" || !Number.isFinite(age) || age < 5 || age > 100) {
+    showError("agOut", "Bitte ein gültiges Alter zwischen 5 und 100 eingeben.");
+    return;
+  }
+
+  if (!(dist >= 3 && dist <= 42.195 * 1.001)) {
+    showError("agOut", "Die Bewertung ist für Distanzen von 3 km bis Marathon verfügbar.");
+    return;
+  }
+
+  if (time <= 0) {
+    showError("agOut", "Bitte eine gültige Zeit eingeben, zum Beispiel 45:00.");
+    return;
+  }
+
+  const percent = ageGradePercent(gender, age, dist, time);
+  const stars = starsFromPercent(percent);
+  const band = ageGradeBand(percent);
+  const ageStandard = agStandard(gender, dist) / ageFactor(age);
+  const interpolated = !Object.keys(AG_STANDARDS[gender]).some(d => sameDist(Number(d), dist));
+
+  const youthNote = age < 20
+    ? `<p class="small">Hinweis: Für Jugendliche unter 20 enthält die Näherung keinen Alterszuschlag – der Wert fällt daher zu niedrig aus.</p>`
+    : "";
+
+  $("agOut").innerHTML = `
+    <div class="result">
+      <div class="big">${percent.toFixed(1)} %</div>
+      <p>Altersklassen-Standardzeit (Näherung${interpolated ? ", interpoliert" : ""}): <b>${fmtT(ageStandard)}</b></p>
+      <p>${starRatingHtml(stars, 28)}
+        <span class="small">(${stars.toFixed(1)} / 5)</span>
+      </p>
+      <p><span class="zone-badge z-marathon">${band}</span></p>
+      ${youthNote}
+      <p class="small">
+        Näherungsformel in Anlehnung an das WMA-Age-Grading-Prinzip – weicht von
+        der offiziellen Tabelle ab und ersetzt keine amtliche Bewertung. Die
+        Prozentzahl bleibt weltrekordnah verankert, die Sterne-Skala ist an
+        gängige Leistungsklassen-Bänder angepasst (nicht linear).
+      </p>
+    </div>
+  `;
+}
+
+/* ---------- GAP ---------- */
+
+function calcGAP() {
+
+  const pace = timeToSec($("gapPace").value);
+  const gradeInput = Number($("gapGrade").value);
+  const dist = Number($("gapDist").value) || 0;
+
+  if (pace <= 0) {
+    showError("gapOut", "Bitte eine gültige Pace eingeben, zum Beispiel 4:30.");
+    return;
+  }
+
+  if (!Number.isFinite(gradeInput) || Math.abs(gradeInput) > 45) {
+    showError("gapOut", "Die Steigung muss zwischen −45 % und +45 % liegen.");
+    return;
+  }
+
+  const grade = gradeInput / 100;
+  const factor = minettiCost(0) / minettiCost(grade);
+  const gapPace = pace * factor;
+
+  let extra = "";
+  if (dist > 0) {
+    extra = `
+      <p>Flach-äquivalente Zeit über ${fmtKm(dist)} km:
+        <b>${fmtT(gapPace * dist)}</b>
+        (statt ${fmtT(pace * dist)})
+      </p>
+    `;
+  }
+
+  $("gapOut").innerHTML = `
+    <div class="result">
+      <div class="big">${fmt(gapPace)}/km</div>
+      <p class="small">Flach-äquivalente Pace bei ${(grade * 100).toFixed(1)} % Steigung
+        (Energiekosten ${Math.abs((1 / factor - 1) * 100).toFixed(0)} % ${factor < 1 ? "höher" : "niedriger"} als flach)</p>
+      ${extra}
+      <p class="small">Minetti-Werte stammen aus Laufband-Messungen; auf steilen Gefällen
+        begrenzen in der Praxis Technik und Muskelbelastung das Tempo stärker als die Energie.</p>
+    </div>
+  `;
+}
+
+/* ---------- ACWR ---------- */
+
+function calcACWR() {
+
+  const acute = Number($("acwrAcute").value);
+  const chronic = Number($("acwrChronic").value);
+
+  if (!Number.isFinite(acute) || acute < 0 || !Number.isFinite(chronic) || chronic <= 0) {
+    showError("acwrOut", "Bitte gültige Kilometerwerte eingeben (Ø letzte 4 Wochen muss größer als 0 sein).");
+    return;
+  }
+
+  const ratio = acute / chronic;
+
+  let zone, cssClass;
+  if (ratio < 0.8) {
+    zone = "Niedrig – möglicher Fitnessverlust";
+    cssClass = "z-reg";
+  } else if (ratio <= 1.3) {
+    zone = "Vergleichsweise sicherer Bereich";
+    cssClass = "z-aero";
+  } else if (ratio <= 1.5) {
+    zone = "Erhöhtes Risiko";
+    cssClass = "z-marathon";
+  } else {
+    zone = "Deutlich erhöhtes Risiko";
+    cssClass = "z-vo2";
+  }
+
+  const safeMax = Math.round(chronic * 1.3);
+
+  $("acwrOut").innerHTML = `
+    <div class="result">
+      <div class="big">${ratio.toFixed(2)}</div>
+      <p><span class="zone-badge ${cssClass}">${zone}</span></p>
+      <p>Obergrenze des sicheren Bereichs bei deinem Ø: <b>≈ ${safeMax} km</b> pro Woche.</p>
+      <p class="small">
+        Rechnet mit reinen Kilometern. Uhren-Apps gewichten die Belastung oft
+        zusätzlich nach Intensität und können deshalb andere Werte zeigen.
+        Faustregel: 0,8–1,3 gilt gängig als vergleichsweise sicherer Bereich,
+        über 1,5 als deutlich erhöhtes Risiko – keine medizinische Bewertung.
+      </p>
+    </div>
+  `;
+}
+
+/* ---------- Wetter ---------- */
+
+function calcWeather() {
+
+  const pace = timeToSec($("wxPace").value);
+  const temp = Number($("wxTemp").value);
+  const humidity = Number($("wxHum").value);
+  const altitude = Number($("wxAlt").value) || 0;
+  const raceDist = Number($("wxDist").value);
+
+  if (pace <= 0) {
+    showError("wxOut", "Bitte eine gültige Basis-Pace eingeben.");
+    return;
+  }
+
+  if (!Number.isFinite(temp) || temp < -30 || temp > 50) {
+    showError("wxOut", "Bitte eine Temperatur zwischen −30 und 50 °C eingeben.");
+    return;
+  }
+
+  if (!Number.isFinite(humidity) || humidity < 0 || humidity > 100) {
+    showError("wxOut", "Die Luftfeuchtigkeit muss zwischen 0 und 100 % liegen.");
+    return;
+  }
+
+  const distanceFactor = raceDist <= 5 ? 0.8
+    : raceDist <= 10 ? 1.0
+    : raceDist <= 21.0975 ? 1.15
+    : 1.3;
+
+  const humidityWeight = Math.min(1, Math.max(0, (temp - 15) / 10));
+  const heatPercent = Math.max(0, temp - 10) * 0.4 + Math.max(0, humidity - 60) * 0.05 * humidityWeight;
+  const altitudePercent = Math.max(0, altitude - 600) / 1000 * 1.5;
+  const totalPercent = (heatPercent + altitudePercent) * distanceFactor;
+  const adjustedPace = pace * (1 + totalPercent / 100);
+
+  const time = adjustedPace * raceDist;
+  const baseTime = pace * raceDist;
+
+  $("wxOut").innerHTML = `
+    <div class="result">
+      <div class="big">${fmt(adjustedPace)}/km</div>
+      <p>Geschätzter Aufschlag: <b>+${totalPercent.toFixed(1)} %</b>
+        (Hitze/Feuchtigkeit: ${(heatPercent * distanceFactor).toFixed(1)} %,
+        Höhe: ${(altitudePercent * distanceFactor).toFixed(1)} %)
+      </p>
+      <p>Über ${distName(raceDist)}: <b>${fmtT(time)}</b> statt ${fmtT(baseTime)}</p>
+      <p class="small">
+        Grobe Faustregel – Akklimatisierung, Schweißrate und individuelle
+        Hitzeverträglichkeit variieren stark und sind hier nicht abgebildet.
+      </p>
+    </div>
+  `;
+}
+
+/* ---------- Taper ---------- */
+
+function calcTaper() {
+
+  const volume = Number($("tapVol").value);
+  const dist = Number($("tapDist").value);
+  const weeks = Math.floor(Number($("tapWeeks").value));
+
+  if (!(volume > 0) || !(weeks >= 1) || weeks > 52) {
+    showError("tapOut", "Bitte gültige Werte eingeben: Umfang > 0 und 1–52 Wochen.");
+    return;
+  }
+
+  let pattern;
+  if (dist <= 10) {
+    pattern = [[2, 85], [1, 60]];
+  } else if (dist <= 21.0975) {
+    pattern = [[2, 75], [1, 50]];
+  } else {
+    pattern = [[3, 80], [2, 60], [1, 40]];
+  }
+
+  const rows = [];
+  for (let w = weeks; w >= 1; w--) {
+    const entry = pattern.find(p => p[0] === w);
+    const percent = entry ? entry[1] : 100;
+    rows.push([weeks - w + 1, w, percent, Math.round(volume * percent / 100)]);
+  }
+
+  const taperLength = pattern.length;
+  const shortNote = weeks < taperLength
+    ? `<p class="small">Für ${distName(dist)} ist ein ${taperLength}-wöchiges Taper üblich – der Plan ist entsprechend verkürzt.</p>`
+    : "";
+
+  $("tapOut").innerHTML = `
+    <div class="result">
+      <div class="table-scroll">
+        <table>
+          <tr><th>Woche</th><th>Bis Renntag</th><th>Umfang</th><th>≈ km</th></tr>
+          ${rows.map(r => `
+            <tr>
+              <td>${r[0]}</td>
+              <td>${r[1] === 1 ? "Rennwoche" : r[1] + " Wochen"}</td>
+              <td>${r[2]} %</td>
+              <td>${r[3]} km</td>
+            </tr>
+          `).join("")}
+        </table>
+      </div>
+      ${shortNote}
+      <p class="small">
+        Umfang der Rennwoche ohne das Rennen selbst. Intensität (kurze Tempoabschnitte)
+        beibehalten, nur Umfang reduzieren. Grobes Standardmuster – bei
+        Verletzungsanamnese oder sehr hohem Grundumfang ggf. sanfter reduzieren.
+      </p>
+    </div>
+  `;
+}
+
+/* ---------- Pacing-Plan ---------- */
+
+function buildPacingPlan(dist, time, slope) {
+  const segments = [];
+  let pos = 0;
+  while (pos < dist - 1e-9) {
+    const len = Math.min(1, dist - pos);
+    segments.push({ start: pos, len });
+    pos += len;
+  }
+
+  if (segments.length > 1 && segments[segments.length - 1].len < 0.05) {
+    const tail = segments.pop();
+    segments[segments.length - 1].len += tail.len;
+  }
+
+  const avgPace = time / dist;
+  const factors = segments.map(s => {
+    const mid = (s.start + s.len / 2) / dist;
+    return 1 + slope * (mid - 0.5);
+  });
+
+  const rawTotal = segments.reduce((sum, s, i) => sum + s.len * avgPace * factors[i], 0);
+  const scale = time / rawTotal;
+
+  let cumulative = 0;
+  let cumDist = 0;
+  return segments.map((s, i) => {
+    const pace = avgPace * factors[i] * scale;
+    const segTime = pace * s.len;
+    cumulative += segTime;
+    cumDist += s.len;
+    return { end: cumDist, len: s.len, pace, segTime, cumulative };
+  });
+}
+
+function calcPacingPlan() {
+
+  const dist = Number($("ppDist").value);
+  const time = timeToSec($("ppTime").value);
+  const slope = Number($("ppStrategy").value);
+
+  if (!(dist > 0) || !(time > 0)) {
+    showError("ppOut", "Bitte gültige Distanz und Zielzeit eingeben.");
+    return;
+  }
+
+  if (dist > 250) {
+    showError("ppOut", "Die Distanz ist für einen Kilometerplan zu groß (max. 250 km).");
+    return;
+  }
+
+  const plan = buildPacingPlan(dist, time, slope);
+  const avgPace = time / dist;
+
+  const half = dist / 2;
+  let firstHalf = 0;
+  for (const seg of plan) {
+    const segStart = seg.end - seg.len;
+    if (seg.end <= half) {
+      firstHalf += seg.segTime;
+    } else if (segStart < half) {
+      firstHalf += seg.pace * (half - segStart);
+    }
+  }
+  const secondHalf = time - firstHalf;
+  const showH = time >= 3600;
+
+  const rows = plan.map(seg => `
+    <tr>
+      <td>${fmtKm(seg.end)} km</td>
+      <td>${fmt(seg.pace)}/km</td>
+      <td>${seg.len < 0.999 || seg.len > 1.001 ? fmt(seg.segTime) + ` <span class="small">(${fmtKm(seg.len)} km)</span>` : fmt(seg.segTime)}</td>
+      <td>${fmt(seg.cumulative, showH)}</td>
+    </tr>
+  `).join("");
+
+  $("ppOut").innerHTML = `
+    <div class="result">
+      <p>Ø Pace: <b>${fmt(avgPace)}/km</b> · Ziel: <b>${fmt(time, showH)}</b></p>
+      <p>1. Hälfte: <b>${fmt(firstHalf, showH)}</b> · 2. Hälfte: <b>${fmt(secondHalf, showH)}</b></p>
+      <div class="table-scroll">
+        <table>
+          <tr><th>bis km</th><th>Pace</th><th>Abschnitt</th><th>Kumuliert</th></tr>
+          ${rows}
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------- Laufband ---------- */
+
+function recommendedIncline(speedKmh) {
+  if (!(speedKmh > 0)) return 0;
+  if (speedKmh >= 10.5) return 1;
+  return Math.pow(speedKmh / 10.5, 2);
+}
+
+function calcTreadmill() {
+
+  const mode = $("tmMode").value;
+  const pace = timeToSec($("tmPace").value);
+  const inclinePct = Number($("tmIncline").value);
+
+  if (pace <= 0) {
+    showError("tmOut", "Bitte eine gültige Pace eingeben.");
+    return;
+  }
+
+  if (!Number.isFinite(inclinePct) || inclinePct < -5 || inclinePct > 25) {
+    showError("tmOut", "Die Laufband-Steigung muss zwischen −5 % und 25 % liegen.");
+    return;
+  }
+
+  const incline = inclinePct / 100;
+  let resultPace, label, speedForRec;
+
+  if (mode === "toRoad") {
+    let roadPace = pace;
+    for (let i = 0; i < 5; i++) {
+      const airGrade = recommendedIncline(speedFromPace(roadPace)) / 100;
+      roadPace = pace * (minettiCost(airGrade) / minettiCost(incline));
+    }
+    resultPace = roadPace;
+    speedForRec = speedFromPace(roadPace);
+    label = "Straßen-äquivalente Pace (gleicher Aufwand)";
+  } else {
+    const airGrade = recommendedIncline(speedFromPace(pace)) / 100;
+    resultPace = pace * (minettiCost(incline) / minettiCost(airGrade));
+    speedForRec = speedFromPace(pace);
+    label = "Laufband-Pace bei gewählter Steigung";
+  }
+
+  const recommendation = recommendedIncline(speedForRec);
+
+  $("tmOut").innerHTML = `
+    <div class="result">
+      <div class="big">${fmt(resultPace)}/km</div>
+      <p>${label} · ${speedFromPace(resultPace).toFixed(1)} km/h</p>
+      <p class="small">
+        Empfohlene Steigung bei ${speedForRec.toFixed(1)} km/h zur
+        Windkompensation: ca. ${recommendation.toFixed(1)} %
+        (Jones &amp; Doust 1996).
+      </p>
+    </div>
+  `;
+}
+
+function setTreadmillRecommended() {
+  const pace = timeToSec($("tmPace").value);
+  if (pace > 0) {
+    $("tmIncline").value = recommendedIncline(speedFromPace(pace)).toFixed(1);
+    runLive("treadmill", false);
+  }
+}
+
+/* ---------- Navigation ---------- */
+
+let historyReady = false;
+
+function activatePage(page, fromHistory) {
+  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.page === page));
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("active", p.id === page));
+
+  const tab = document.querySelector(`.tab[data-page="${page}"]`);
+  if (tab && tab.scrollIntoView) tab.scrollIntoView({ block: "nearest", inline: "center", behavior: reduceMotion ? "auto" : "smooth" });
+
+  try { localStorage.setItem("runPotentialLastPage", page); } catch { /* egal */ }
+
+  if (page === "home") {
+    requestAnimationFrame(drawCurve);
+  } else {
+    runLive(page, true);
+  }
+}
+
+function showSection(section, suppressPush) {
+  document.querySelectorAll(".primary-tab").forEach(b => b.classList.toggle("active", b.dataset.section === section));
+
+  let firstVisible = null;
+  document.querySelectorAll(".tab").forEach(b => {
+    const match = b.dataset.section === section;
+    b.hidden = !match;
+    if (match && !firstVisible) firstVisible = b;
+  });
+
+  if (firstVisible) activatePage(firstVisible.dataset.page, suppressPush);
+}
+
+function goToTool(section, page) {
+  showSection(section, true);
+  activatePage(page);
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function setupNavigation() {
+  document.querySelectorAll(".primary-tab").forEach(b => b.addEventListener("click", () => showSection(b.dataset.section)));
+  document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => activatePage(b.dataset.page)));
+  let last = null;
+  try { last = localStorage.getItem("runPotentialLastPage"); } catch { /* egal */ }
+  const lastTab = last && document.querySelector(`.tab[data-page="${last}"]`);
+
+  if (lastTab) {
+    showSection(lastTab.dataset.section);
+    activatePage(last);
+  } else {
+    showSection("profil");
+  }
+  historyReady = true;
+}
+
+/* ---------- Startseite: Hero, Ring, Leistungskurve ---------- */
+
+const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let heroState = { model: null, perfs: [], shownIndex: null };
+
+function openEditor(scroll) {
+  const editor = $("profileEditor");
+  editor.open = true;
+  if (scroll) setTimeout(() => editor.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" }), 60);
+}
+
+function countUp(el, from, to, duration = 900) {
+  if (reduceMotion || !Number.isFinite(from) || Math.abs(from - to) < 1) {
+    el.textContent = fmtT(to);
+    return;
+  }
+  const start = performance.now();
+  const step = now => {
+    const t = Math.min(1, (now - start) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = fmtT(from + (to - from) * eased);
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function ringSvg(fraction) {
+  const r = 52;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - Math.max(0, Math.min(1, fraction)));
+  return `<svg viewBox="0 0 128 128" aria-hidden="true">
+    <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffd24d"/><stop offset="100%" stop-color="#f2b705"/>
+    </linearGradient></defs>
+    <circle class="ring-track" cx="64" cy="64" r="${r}"/>
+    <circle class="ring-val" cx="64" cy="64" r="${r}" stroke-dasharray="${c.toFixed(1)}"
+      stroke-dashoffset="${c.toFixed(1)}" data-target="${offset.toFixed(1)}"/>
+  </svg>`;
+}
+
+function renderHero(data) {
+  const hero = $("hero");
+  const model = data ? buildModel(data.perfs) : null;
+
+  if (!model) {
+    heroState = { model: null, perfs: [], shownIndex: null };
+    hero.innerHTML = `
+      <div class="card hero">
+        <div class="eyebrow">Willkommen bei RunPotential</div>
+        <h2 class="hero-title">Finde heraus,<br>was in dir steckt.</h2>
+        <p class="muted" style="max-width:560px">
+          Trage ein oder zwei aktuelle Rennergebnisse ein – RunPotential berechnet daraus
+          deine Zielzeiten, Trainingsbereiche und Pacing-Pläne. Alles bleibt auf deinem Gerät.
+        </p>
+        <div class="actions">
+          <button class="primary" type="button" data-hero="start">Leistung eintragen</button>
+          <button class="secondary" type="button" data-hero="example">Beispiel ansehen</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const { index, exponent } = model;
+  const percent = ageGradePercent(data.gender, data.age, 10, index);
+  const hasAg = percent !== null;
+  const latest = data.perfs.filter(p => p.date).map(p => p.date).sort().pop();
+  const threshold = sixtyMinutePace(index, exponent);
+
+  const tiles = [[5, "5 km"], [21.0975, "Halbmarathon"], [42.195, "Marathon"]].map(([d, name]) => {
+    const t = advancedTarget(index, d, exponent);
+    return `<div class="tile"><span class="t-label">${name}</span><span class="t-time">${fmt(t, d > 20)}</span><span class="t-pace">${fmt(t / d)}/km</span></div>`;
+  }).join("");
+
+  const meta = hasAg
+    ? `${starRatingHtml(starsFromPercent(percent), 18)} <span class="zone-badge z-marathon">${ageGradeBand(percent)}</span>`
+    : `<span class="small">Alter &amp; Geschlecht eintragen für deine Altersklassen-Wertung</span>`;
+
+  hero.innerHTML = `
+    <div class="card hero">
+      <div class="hero-top">
+        <div class="ring" role="img" aria-label="${hasAg ? `Altersklassen-Wertung ${percent.toFixed(0)} Prozent` : "Keine Altersklassen-Wertung"}">
+          ${ringSvg(hasAg ? percent / 100 : 0)}
+          <div class="ring-center"><strong>${hasAg ? percent.toFixed(0) + "%" : "–"}</strong><span>Alters-<br>wertung</span></div>
+        </div>
+        <div>
+          <div class="eyebrow">Dein 10-km-Potenzial</div>
+          <div class="hero-time" id="heroTime">${fmtT(index)}</div>
+          <div class="hero-meta">${meta}</div>
+          <p class="small hero-sub">
+            Schwelle ≈ ${fmt(threshold)}/km · ${data.perfs.length} Leistung${data.perfs.length === 1 ? "" : "en"}${latest ? ` · Stand ${fmtDate(latest)}` : ""}
+          </p>
+        </div>
+      </div>
+
+      <div class="hero-tiles">${tiles}</div>
+
+      <div class="curve">
+        <div class="curve-head">
+          <h3>Deine Leistungskurve</h3>
+          <span class="legend-inline"><span><i></i>Modell</span><span><em></em>Deine Leistungen</span></span>
+        </div>
+        <p class="small" style="margin:0 0 6px">Pace je Distanz – oben ist schneller. Tippen oder darüberfahren für Details.</p>
+        <div class="curve-plot" id="heroCurve"></div>
+      </div>
+
+      <div class="actions hero-actions">
+        <button class="secondary" type="button" data-hero="edit">Profil bearbeiten</button>
+        <button class="secondary" type="button" data-hero="zones">Trainingsbereiche</button>
+        <button class="secondary" type="button" data-hero="race">Prognose</button>
+      </div>
+    </div>`;
+
+  const from = heroState.shownIndex !== null ? heroState.shownIndex : index * 1.12;
+  heroState = { model, perfs: data.perfs, shownIndex: index };
+  countUp($("heroTime"), from, index);
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const ring = hero.querySelector(".ring-val");
+    if (ring) ring.setAttribute("stroke-dashoffset", ring.dataset.target);
+  }));
+
+  drawCurve();
+}
+
+function niceStep(range) {
+  const steps = [5, 10, 15, 20, 30, 60, 120];
+  return steps.find(s => range / s <= 5) || 300;
+}
+
+function drawCurve() {
+  const host = $("heroCurve");
+  const { model, perfs } = heroState;
+  if (!host || !model) return;
+
+  const W = host.clientWidth;
+  if (!W) return;
+
+  const H = W < 480 ? 190 : 230;
+  const m = { l: 46, r: 14, t: 12, b: 26 };
+  const { index, exponent } = model;
+  const paceAt = d => index * Math.pow(d / 10, exponent) / d;
+
+  const dists = perfs.map(p => p.dist);
+  const dMin = Math.min(1, ...dists);
+  const dMax = Math.max(42.195, ...dists);
+  const lx0 = Math.log(dMin);
+  const lx1 = Math.log(dMax);
+  const x = d => m.l + (Math.log(d) - lx0) / (lx1 - lx0) * (W - m.l - m.r);
+  const xInv = px => Math.exp(lx0 + (px - m.l) / (W - m.l - m.r) * (lx1 - lx0));
+
+  const paces = [paceAt(dMin) * 0.985, paceAt(dMax) * 1.015, ...perfs.map(p => p.time / p.dist)];
+  const pMin = Math.min(...paces) - 6;
+  const pMax = Math.max(...paces) + 6;
+  const y = p => m.t + (p - pMin) / (pMax - pMin) * (H - m.t - m.b);
+
+  const N = 80;
+  const samples = Array.from({ length: N + 1 }, (_, i) => Math.exp(lx0 + (lx1 - lx0) * i / N));
+  const line = samples.map((d, i) => `${i ? "L" : "M"}${x(d).toFixed(1)},${y(paceAt(d)).toFixed(1)}`).join("");
+  const bandTop = samples.map((d, i) => `${i ? "L" : "M"}${x(d).toFixed(1)},${y(paceAt(d) * 0.985).toFixed(1)}`).join("");
+  const bandBottom = samples.slice().reverse().map(d => `L${x(d).toFixed(1)},${y(paceAt(d) * 1.015).toFixed(1)}`).join("");
+
+  const step = niceStep(pMax - pMin);
+  let yTicks = "";
+  for (let p = Math.ceil(pMin / step) * step; p <= pMax; p += step) {
+    yTicks += `<line class="c-grid" x1="${m.l}" x2="${W - m.r}" y1="${y(p).toFixed(1)}" y2="${y(p).toFixed(1)}"/>
+      <text class="c-axis" x="${m.l - 8}" y="${(y(p) + 4).toFixed(1)}" text-anchor="end">${fmt(p)}</text>`;
+  }
+
+  const xTickList = [[1, "1k"], [3, "3k"], [5, "5k"], [10, "10k"], [21.0975, "HM"], [42.195, "M"]]
+    .filter(([d]) => d >= dMin - 1e-9 && d <= dMax + 1e-9);
+  const xTicks = xTickList.map(([d, label]) =>
+    `<text class="c-axis" x="${x(d).toFixed(1)}" y="${H - 6}" text-anchor="middle">${label}</text>`).join("");
+
+  const points = perfs.map((p, i) =>
+    `<circle class="c-pt" data-i="${i}" cx="${x(p.dist).toFixed(1)}" cy="${y(p.time / p.dist).toFixed(1)}" r="5"/>`).join("");
+
+  host.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Leistungskurve: modellierte Pace von ${distName(dMin)} bis ${distName(dMax)} mit deinen Leistungen">
+      ${yTicks}
+      <path class="c-band" d="${bandTop}${bandBottom}Z"/>
+      <path class="c-line" d="${line}"/>
+      <line class="c-cross" id="cCross" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" visibility="hidden"/>
+      <circle class="c-dot" id="cDot" r="5" cx="0" cy="0" visibility="hidden"/>
+      ${points}
+      ${xTicks}
+      <rect x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H}" fill="transparent" id="cHit"/>
+    </svg>
+    <div class="c-tip" id="cTip"></div>`;
+
+  const svg = host.querySelector("svg");
+  const tip = $("cTip");
+  const cross = $("cCross");
+  const dot = $("cDot");
+
+  const place = (px, py, html) => {
+    tip.innerHTML = html;
+    tip.classList.add("show");
+    const tw = tip.offsetWidth;
+    const left = Math.max(0, Math.min(W - tw, px - tw / 2));
+    const top = Math.max(0, py - tip.offsetHeight - 12);
+    tip.style.transform = `translate(${left}px, ${top}px)`;
+  };
+
+  const hide = () => {
+    tip.classList.remove("show");
+    cross.setAttribute("visibility", "hidden");
+    dot.setAttribute("visibility", "hidden");
+  };
+
+  const move = ev => {
+    const rect = svg.getBoundingClientRect();
+    const px = (ev.clientX - rect.left) * (W / rect.width);
+    const py = (ev.clientY - rect.top) * (H / rect.height);
+
+    let best = null;
+    perfs.forEach(p => {
+      const dx = x(p.dist) - px;
+      const dy = y(p.time / p.dist) - py;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 16 && (!best || dist < best.dist)) best = { p, dist };
+    });
+
+    if (best) {
+      const p = best.p;
+      cross.setAttribute("visibility", "hidden");
+      dot.setAttribute("visibility", "hidden");
+      const modelT = advancedTarget(index, p.dist, exponent);
+      const diff = (p.time / modelT - 1) * 100;
+      place(x(p.dist), y(p.time / p.dist), `<b>${distName(p.dist)} · ${fmtT(p.time)}</b><br>
+        ${fmt(p.time / p.dist)}/km${p.date ? " · " + fmtDate(p.date) : ""}<br>
+        <span class="muted">${Math.abs(diff) < 0.5 ? "genau auf der Kurve" : `${Math.abs(diff).toFixed(1)} % ${diff < 0 ? "schneller" : "langsamer"} als Modell`}</span>`);
+      return;
+    }
+
+    const d = Math.min(dMax, Math.max(dMin, xInv(px)));
+    const cx = x(d);
+    const cy = y(paceAt(d));
+    cross.setAttribute("x1", cx);
+    cross.setAttribute("x2", cx);
+    cross.setAttribute("visibility", "visible");
+    dot.setAttribute("cx", cx);
+    dot.setAttribute("cy", cy);
+    dot.setAttribute("visibility", "visible");
+    const snap = xTickList.find(([td]) => Math.abs(x(td) - cx) < 6);
+    const dd = snap ? snap[0] : d;
+    place(cx, cy, `<b>${snap ? distName(dd) : fmtKm(dd) + " km"}</b><br>${fmtT(advancedTarget(index, dd, exponent))} · ${fmt(paceAt(dd))}/km`);
+  };
+
+  svg.addEventListener("pointermove", move);
+  svg.addEventListener("pointerdown", move);
+  svg.addEventListener("pointerleave", hide);
+}
+
+let resizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(drawCurve, 150);
+});
+
+function setupHero() {
+  $("hero").addEventListener("click", ev => {
+    const btn = ev.target.closest("[data-hero]");
+    if (!btn) return;
+    const action = btn.dataset.hero;
+    if (action === "start") {
+      openEditor(true);
+      const firstTime = document.querySelector("#perfRows .pr-time");
+      if (firstTime) setTimeout(() => firstTime.focus({ preventScroll: true }), 350);
+    } else if (action === "example") {
+      fillExampleProfile();
+      saveProfile();
+      showProfileMessage(`<span class="good">Beispielprofil geladen.</span> <span class="small">Ersetze die Werte unter „Profil bearbeiten" durch deine eigenen.</span>`);
+    } else if (action === "edit") {
+      openEditor(true);
+    } else if (action === "zones") {
+      goToTool("training", "zones");
+    } else if (action === "race") {
+      goToTool("wettkampf", "race");
+    }
+  });
+}
+
+/* ---------- Live-Berechnung ---------- */
+
+let softMode = false;
+
+const LIVE_CALCS = {
+  pace: () => calculatePace(),
+  race: () => predictRace(),
+  interval: () => calculateIntervals(),
+  zones: () => calculateAdvancedProfile(),
+  scenario: () => calculateScenario(),
+  agegrade: () => calcAgeGrade(),
+  gap: () => calcGAP(),
+  acwr: () => calcACWR(),
+  weather: () => calcWeather(),
+  taper: () => calcTaper(),
+  pacingplan: () => calcPacingPlan(),
+  treadmill: () => calcTreadmill()
+};
+
+function runLive(page, soft) {
+  const fn = LIVE_CALCS[page];
+  if (!fn) return;
+  softMode = !!soft;
+  try {
+    fn();
+  } finally {
+    softMode = false;
+  }
+}
+
+function setupLive() {
+  const timers = {};
+  Object.keys(LIVE_CALCS).forEach(page => {
+    const section = $(page);
+    if (!section) return;
+    section.addEventListener("input", () => {
+      clearTimeout(timers[page]);
+      timers[page] = setTimeout(() => runLive(page, true), 180);
+    });
+    section.addEventListener("change", () => {
+      clearTimeout(timers[page]);
+      runLive(page, false);
+    });
+  });
+}
+
+const handlers = {
+  saveProfileButton: saveProfile,
+  exampleProfileButton: fillExampleProfile,
+  addPerfButton: () => addPerfRow(),
+  scenarioCTAButton: () => goToTool("training", "scenario"),
+  exportCodeButton: exportCode,
+  exportFileButton: exportFile,
+  importCodeButton: importCode,
+  resetProfileButton: resetProfile,
+  resetScenarioButton: resetScenario,
+  tmRecButton: setTreadmillRecommended
+};
+
+Object.entries(handlers).forEach(([id, fn]) => {
+  const el = $(id);
+  if (el) el.addEventListener("click", fn);
+});
+$("importFile").addEventListener("change", importFile);
+
+initDistSelects();
+setupScenarioSliders();
+setupHero();
+setupLive();
+loadProfile();
+setupNavigation();
+
+</script>
+</body>
+</html>
