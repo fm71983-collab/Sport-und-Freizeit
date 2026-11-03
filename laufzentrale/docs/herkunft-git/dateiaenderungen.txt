@@ -1,0 +1,15 @@
+b2a0b9b 2026-10-29 Laufzentrale: Kontext-Auswahl als Kacheln, RunPotential nahtlos eingebunden
+
+ laufzentrale/index.html | 136 ++++++++++++++++++++++++++++++++++--------------
+ 1 file changed, 98 insertions(+), 38 deletions(-)
+2eb8cb5 2026-10-29 Laufzentrale: KI-Analyse der letzten Einheit auf der Startseite
+
+ laufzentrale/index.html | 165 +++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 164 insertions(+), 1 deletion(-)
+67b4dc3 2026-10-29 Laufzentrale: Artefakt zur Weiterarbeit ins Repository übernommen
+
+ laufzentrale/README.md               |   15 +
+ laufzentrale/capabilities.json       |   14 +
+ laufzentrale/index.html              | 3402 ++++++++++++++++++++++++++++++++++
+ laufzentrale/runpotential/index.html | 3359 +++++++++++++++++++++++++++++++++
+ 4 files changed, 6790 insertions(+)

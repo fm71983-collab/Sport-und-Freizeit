@@ -1,0 +1,55 @@
+Du bist ein erfahrener Laufcoach. Antworte auf Deutsch, konkret und ohne Markdown. Nutze nur die gelieferten Daten und erfinde nichts; fehlt etwas Wichtiges, sag es in einem Halbsatz. Ziel: maximaler sportlicher Erfolg ohne Verletzung.
+
+Analysiere meine letzte Trainingseinheit im Zusammenhang mit meinen Vorhaben, Zielen und dem Training der letzten Zeit (Kontext: rollierende Trainingswoche, Trainingsplan, letzte 3 Monate, Ziele und Rennen). Wie passt die Einheit dazu, was sagt sie über Form, Belastung und Erholung, und was folgt daraus für die nächsten Tage und den Plan mit Blick auf die Ziele? Gliedere in kurze Absätze, die mit „Fazit:“, „Einordnung:“, „Auffällig:“ und „Nächste Tage:“ beginnen. Höchstens 230 Wörter.
+
+Heute ist 2026-10-29. Bereitschaft heute: Qualität möglich, mit Augenmaß (HRV 50 ms unter der Baseline (52 ms); Ruhepuls 48 (Median 49, -1); Schlaf-Score 78, 7:20 h; Coros-Erholung 92 %; Belastungsquote 1,05). Leistung laut Coros: VO2max 55, Schwelle 4:15/km, Prognosen 10 km 40:30, HM 1:30:00, M 3:10:00.
+
+Einheit Do 2026-10-29, Lauf „Testlauf 0“: 20,0 km in 1:30:00, Ø 4:30/km, Ø Puls 140, max 158, +40/−32 Hm, Kadenz 172 spm.
+Geplant war an dem Tag: Locker (Locker, 9 km).
+HFmax 157, Schwellenpace laut Coros 4:15/km. Zeit in Pulszonen: Z1 Regeneration 0 %, Z2 Grundlage 0 %, Z3 Tempo 0 %, Z4 Schwelle 87 %, Z5 VO2max 13 %. Puls-Drift 2. gegenüber 1. Hälfte 5,2 %.
+Splits:
+km 1: 5:00/km (bereinigt 4:58), Puls 140 (max 150), +5/−4 m, 172 spm
+km 2: 5:02/km (bereinigt 4:58), Puls 141 (max 151), +5/−4 m, 172 spm
+km 3: 5:04/km (bereinigt 4:58), Puls 142 (max 152), +5/−4 m, 172 spm
+km 4: 5:06/km (bereinigt 4:58), Puls 143 (max 153), +5/−4 m, 172 spm
+km 5: 5:08/km (bereinigt 4:58), Puls 144 (max 154), +5/−4 m, 172 spm
+km 6: 5:10/km (bereinigt 4:58), Puls 145 (max 155), +5/−4 m, 172 spm
+km 7: 5:12/km (bereinigt 4:58), Puls 146 (max 156), +5/−4 m, 172 spm
+km 8: 5:14/km (bereinigt 4:58), Puls 147 (max 157), +5/−4 m, 172 spm
+Ähnliche Läufe (±8 s/km): 2026-10-23 Testlauf 6: 9,0 km 4:30/km Puls 146; 2026-10-17 Testlauf 12: 10,0 km 4:30/km Puls 142; 2026-10-11 Testlauf 18: 11,0 km 4:30/km Puls 148; 2026-10-05 Testlauf 24: 12,0 km 4:30/km Puls 144.
+
+Rollierende Trainingswoche 2026-10-23 bis 2026-10-29: 51,0 Lauf-km, 4,1 h, 4 Einheiten; Belastung kurzfristig 60, langfristig 58, Quote 1,05 (optimal); HRV in ms 10-23: 56, 10-24: 55, 10-25: 54, 10-26: 53, 10-27: 52, 10-28: 51, 10-29: 50.
+Fr 2026-10-23: Plan –; gemacht: Lauf 9,0 km 40:30 4:30/km Puls 146
+Sa 2026-10-24: Plan –; gemacht: nichts
+So 2026-10-25: Plan –; gemacht: Lauf 12,0 km 1:04:00 5:20/km Puls 144
+Mo 2026-10-26: Plan –; gemacht: nichts
+Di 2026-10-27: Plan –; gemacht: Lauf 10,0 km 53:20 5:20/km Puls 142
+Mi 2026-10-28: Plan –; gemacht: nichts
+Do 2026-10-29: Plan Locker (Locker, 9 km); gemacht: Lauf 20,0 km 1:30:00 4:30/km Puls 140
+
+Trainingsplan: aktuelle Phase „Rursee-Block“ (2026-10-19 bis 2026-11-08), danach „Pause“ ab 2026-11-09. Planerfüllung seit 2026-10-19: 100 % (Umfang 100 %, Schlüsseleinheiten 0/0).
+Wochenumfänge: ab 2026-10-05: geplant 0,0 km, gelaufen 41,0 km; ab 2026-10-12: geplant 0,0 km, gelaufen 39,0 km; ab 2026-10-19: geplant 0,0 km, gelaufen 40,0 km; ab 2026-10-26: geplant 21,0 km, gelaufen 30,0 km
+Geplant in den 14 Tagen nach der Einheit:
+Fr 2026-10-30: 5 × 1000 m (Qualität, 12 km)
+
+Letzte 3 Monate (Coros):
+ab 2026-08-10: 40,0 km in 4 Läufen, längster 12,0 km
+ab 2026-08-17: 41,0 km in 3 Läufen, längster 20,0 km
+ab 2026-08-24: 39,0 km in 4 Läufen, längster 12,0 km
+ab 2026-08-31: 43,0 km in 3 Läufen, längster 20,0 km
+ab 2026-09-07: 38,0 km in 4 Läufen, längster 11,0 km
+ab 2026-09-14: 40,0 km in 3 Läufen, längster 20,0 km
+ab 2026-09-21: 42,0 km in 4 Läufen, längster 12,0 km
+ab 2026-09-28: 37,0 km in 3 Läufen, längster 20,0 km
+ab 2026-10-05: 41,0 km in 4 Läufen, längster 12,0 km
+ab 2026-10-12: 39,0 km in 3 Läufen, längster 20,0 km
+ab 2026-10-19: 40,0 km in 4 Läufen, längster 12,0 km
+ab 2026-10-26: 30,0 km in 2 Läufen, längster 20,0 km
+Tempo und Puls je Monat (Läufe ab 5 km):
+2026-08: Ø 5:01/km bei Ø Puls 143 (13 Läufe)
+2026-09: Ø 5:02/km bei Ø Puls 144 (15 Läufe)
+2026-10: Ø 5:03/km bei Ø Puls 144 (15 Läufe)
+Lange Läufe ab 18 km: 2026-10-29 20,0 km 4:30/km Puls 140; 2026-10-15 20,0 km 5:20/km Puls 144; 2026-10-01 20,0 km 5:20/km Puls 148; 2026-09-17 20,0 km 4:30/km Puls 142; 2026-09-03 20,0 km 5:20/km Puls 146; 2026-08-20 20,0 km 5:20/km Puls 140; 2026-08-06 20,0 km 4:30/km Puls 144
+
+Ziele und Rennen:
+2027-03-07 Bienwald Marathon Kandel (42,2 km, in 129 Tagen, Prio A); Vorhaben: Bestimmte Zielzeit laufen; Ziel 3:10:00; Prognose 3:10:00, Chance aufs Ziel 50 %

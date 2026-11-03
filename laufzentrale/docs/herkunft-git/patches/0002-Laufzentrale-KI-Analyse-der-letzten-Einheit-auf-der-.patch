@@ -1,0 +1,220 @@
+From 2eb8cb579997421f68c402c0ce89e2fd590e04d6 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 29 Oct 2026 07:01:02 +0000
+Subject: [PATCH 2/3] Laufzentrale: KI-Analyse der letzten Einheit auf der
+ Startseite
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Neues Panel unter der Wochenleiste: Einzelanalyse der letzten Einheit oder
+Analyse im Kontext mit wählbarem Rahmen (rollierende Woche, Trainingsplan,
+letzte 3 Monate, Ziele & Rennen). Ergebnisse werden je Einheit und Auswahl
+im Datenspeicher abgelegt.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ac6HY2s3k4utbBVFj1UmrQ
+---
+ laufzentrale/index.html | 165 +++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 164 insertions(+), 1 deletion(-)
+
+diff --git a/laufzentrale/index.html b/laufzentrale/index.html
+index 11a4705..defcc59 100644
+--- a/laufzentrale/index.html
++++ b/laufzentrale/index.html
+@@ -560,6 +560,14 @@ details ul{margin:6px 0 0;padding-left:18px;font-size:13px}
+ /* ---------- KI ---------- */
+ .ai{background:var(--accent-soft);border-radius:var(--radius-s);padding:12px 14px;margin-top:12px;font-size:14px;white-space:pre-wrap;line-height:1.55;border-left:3px solid var(--accent)}
+ .ai[hidden]{display:none}
++.ana .panel-head{margin-bottom:10px}
++.ana .actions{margin:0}
++.ana-meta{margin-top:3px}
++.ana .seg{max-width:420px;margin-top:0}
++.ana-ctx{margin-top:10px;display:grid;gap:6px}
++.ana-ctx[hidden]{display:none}
++.ana .ai{margin-top:12px}
++@media(max-width:560px){.ana .actions{width:100%}.ana .actions .btn{flex:1}.ana .seg{max-width:none}}
+ 
+ /* ---------- RunPotential ---------- */
+ .rp-frame{width:100%;height:min(1200px,calc(100dvh - 210px));min-height:560px;border:var(--panel-border);border-radius:var(--radius);background:var(--surface);display:block}
+@@ -698,6 +706,27 @@ details ul{margin:6px 0 0;padding-left:18px;font-size:13px}
+       </div>
+     </section>
+     <div class="wkstrip" id="weekStrip" aria-label="Diese Woche"></div>
++    <section class="panel mt ana" id="anaPanel" aria-labelledby="anaTitle">
++      <div class="panel-head">
++        <div><div class="eyebrow">KI-Analyse · letzte Einheit</div><h3 id="anaTitle">Letzte Einheit</h3><div class="small muted ana-meta" id="anaMeta">Lade Aktivitäten …</div></div>
++        <div class="actions"><button class="btn ghost" type="button" id="anaOpen" disabled>Details</button><button class="btn primary" type="button" id="anaBtn" disabled>Analysieren</button></div>
++      </div>
++      <div class="seg" id="anaMode" role="group" aria-label="Art der Analyse">
++        <button type="button" data-am="single" aria-pressed="true">Einzelanalyse</button>
++        <button type="button" data-am="ctx" aria-pressed="false">Im Kontext</button>
++      </div>
++      <div class="ana-ctx" id="anaCtx" hidden>
++        <div class="small muted">Kontext für die Analyse (mehrere möglich)</div>
++        <div class="filters" id="anaCtxChips">
++          <button class="chip" type="button" data-ac="week" aria-pressed="false">Rollierende Woche</button>
++          <button class="chip" type="button" data-ac="plan" aria-pressed="false">Trainingsplan</button>
++          <button class="chip" type="button" data-ac="m3" aria-pressed="false">Letzte 3 Monate</button>
++          <button class="chip" type="button" data-ac="goals" aria-pressed="false">Ziele &amp; Rennen</button>
++        </div>
++      </div>
++      <div class="ai" id="anaOut" hidden></div>
++      <p class="note" id="anaNote"></p>
++    </section>
+     <div class="hero2 mt">
+       <div class="panel plan-card" id="todayPlan"><div class="skeleton">Plan wird geladen …</div></div>
+       <div class="panel" id="nextRace"><div class="skeleton">Rennen werden geladen …</div></div>
+@@ -3325,6 +3354,140 @@ async function ensureReview(force) {
+ $("reviewRedo").addEventListener("click", () => ensureReview(true));
+ function autoAI() { ensureBriefing(false); ensureReview(false); }
+ 
++/* ============ Letzte Einheit: KI-Analyse (einzeln oder im Kontext) ============ */
++// Ergebnisse liegen im Datenspeicher (Sammlung "analyses"), je Einheit, Art und Kontextauswahl.
++const ANA_CTX = {week: "rollierende Trainingswoche", plan: "Trainingsplan", m3: "letzte 3 Monate", goals: "Ziele und Rennen"};
++const ANA_SYS = "Du bist ein erfahrener Laufcoach. Antworte auf Deutsch, konkret und ohne Markdown. Nutze nur die gelieferten Daten und erfinde nichts; fehlt etwas Wichtiges, sag es in einem Halbsatz. Ziel: maximaler sportlicher Erfolg ohne Verletzung.";
++S.ana = (() => {
++  const def = {mode: "single", ctx: ["week", "plan", "goals"]};
++  try { const o = JSON.parse(lsGet("lz-ana") || "{}"); return {mode: o.mode === "ctx" ? "ctx" : "single", ctx: Array.isArray(o.ctx) ? o.ctx.filter(k => ANA_CTX[k]) : def.ctx}; } catch { return def; }
++})();
++S.anaDocs = {}; S.anaFetch = {};
++const lastSession = () => (S.records || []).find(a => a.dur >= 300 || a.dist >= 1);
++const anaKey = a => `${a.label}_${S.ana.mode === "ctx" ? "ctx-" + Object.keys(ANA_CTX).filter(k => S.ana.ctx.includes(k)).join("-") : "single"}`;
++const actTxt = x => `${x.sportName} ${km1(x.dist)} km ${fmtT(x.dur)}${x.isRun && x.pace ? " " + fmtP(x.pace) + "/km" : ""}${x.hr ? " Puls " + x.hr : ""}`;
++function renderAna() {
++  document.querySelectorAll("#anaMode [data-am]").forEach(b => b.setAttribute("aria-pressed", b.dataset.am === S.ana.mode ? "true" : "false"));
++  document.querySelectorAll("#anaCtxChips [data-ac]").forEach(b => b.setAttribute("aria-pressed", S.ana.ctx.includes(b.dataset.ac) ? "true" : "false"));
++  $("anaCtx").hidden = S.ana.mode !== "ctx";
++  const a = lastSession(); const out = $("anaOut");
++  if (!a) {
++    $("anaTitle").textContent = "Letzte Einheit";
++    $("anaMeta").textContent = S.records ? "Keine Einheit in den letzten 90 Tagen." : S.errors.records ? "Aktivitäten konnten nicht geladen werden." : "Lade Aktivitäten …";
++    $("anaBtn").disabled = true; $("anaOpen").disabled = true; out.hidden = true; $("anaNote").textContent = ""; return;
++  }
++  $("anaTitle").textContent = a.title || a.sportName;
++  $("anaMeta").textContent = `${dLong(a.date)} · ${a.sportName} · ${km1(a.dist)} km · ${fmtT(a.dur)}${a.isRun && a.pace ? ` · ${fmtP(a.pace)}/km` : !a.isRun && a.speed ? ` · ${nf(a.speed, 1)} km/h` : ""}${a.hr ? ` · Ø ${a.hr} bpm` : ""}`;
++  $("anaOpen").disabled = false;
++  const key = anaKey(a); const noCtx = S.ana.mode === "ctx" && !S.ana.ctx.length;
++  if (!(key in S.anaDocs) && S.db && S.dbReady && !S.anaFetch[key]) {
++    S.anaFetch[key] = true;
++    S.db.collection("analyses").doc(key).get().then(s => { S.anaDocs[key] = s.exists ? s.data() : null; }).catch(() => { S.anaDocs[key] = null; }).finally(renderAna);
++  }
++  const doc = S.anaDocs[key];
++  $("anaBtn").disabled = !!S.anaBusy || noCtx || !S.sample;
++  $("anaBtn").textContent = S.anaBusy ? "Analysiere …" : doc ? "Neu analysieren" : "Analysieren";
++  if (S.anaBusy && S.anaBusyKey === key) { out.hidden = false; out.textContent = S.anaPartial || "Claude analysiert die Einheit …"; }
++  else if (doc) { out.hidden = false; out.textContent = doc.text; }
++  else if (S.anaErr && S.anaErrKey === key) { out.hidden = false; out.textContent = S.anaErr; }
++  else out.hidden = true;
++  let note = "";
++  if (!S.sample) note = "Die Claude-Analyse ist in dieser Ansicht nicht verfügbar.";
++  else if (noCtx) note = "Wähle mindestens einen Kontext.";
++  else if (doc && doc.at && !(S.anaBusy && S.anaBusyKey === key)) { const t = new Date(doc.at); note = `Erstellt am ${pad(t.getDate())}.${pad(t.getMonth() + 1)}. um ${pad(t.getHours())}:${pad(t.getMinutes())} Uhr${doc.mode === "ctx" ? ` · Kontext: ${doc.ctx.map(k => ANA_CTX[k]).join(", ")}` : " · Einzelanalyse"}`; }
++  else if (!doc && !S.anaBusy) note = S.ana.mode === "ctx" ? "Ordnet die Einheit in deine Vorhaben, Ziele und das Training der letzten Zeit ein." : "Bewertet die Einheit für sich: Pacing, Puls, Zonen, Gelände und den Plan für den Tag.";
++  $("anaNote").textContent = note;
++}
++function sessionBlock(a, l) {
++  const splits = l && l.splits ? l.splits.filter(s => s.km >= 0.3) : []; const tot = l && l.total; const p = S.plan[a.date];
++  const zt = [0, 0, 0, 0, 0]; splits.forEach(s => { if (s.hr) { const z = zoneOf(s.hr); if (z >= 0) zt[z] += s.time; } }); const tt = zt.reduce((x, y) => x + y, 0);
++  const drift = a.isRun ? driftOf(splits) : null; const sim = similarRuns(a);
++  return [
++    `Einheit ${WD[parseIso(a.date).getDay()]} ${a.date}, ${a.sportName} „${a.title || a.name}“: ${km1(a.dist)} km in ${fmtT(a.dur)}, Ø ${a.isRun ? fmtP(a.pace) + "/km" : nf(a.speed, 1) + " km/h"}, Ø Puls ${a.hr || "–"}${tot && tot.maxHr ? `, max ${tot.maxHr}` : ""}${tot ? `, +${nf(tot.up)}/−${nf(tot.down)} Hm` : ""}${tot && tot.cad ? `, Kadenz ${tot.cad} spm` : ""}${a.isRun && tot && tot.gap ? `, höhenbereinigt ${fmtP(tot.gap)}/km` : ""}.`,
++    `Geplant war an dem Tag: ${p ? `${p.title} (${TYPE_LABEL[p.type]}, ${p.km || "?"} km${p.paceFrom ? `, Pace ${p.paceFrom}–${p.paceTo || ""}` : ""}${p.details ? `, ${p.details}` : ""})` : "nichts"}.`,
++    `HFmax ${hfMax()}${S.fitness && S.fitness.thr ? `, Schwellenpace laut Coros ${fmtP(S.fitness.thr)}/km` : ""}. Zeit in Pulszonen: ${tt ? ZONES.map((z, i) => `${z[0]} ${z[1]} ${nf(zt[i] / tt * 100)} %`).join(", ") : "keine Daten"}${drift != null ? `. Puls-Drift 2. gegenüber 1. Hälfte ${nf(drift, 1)} %` : ""}.`,
++    splits.length ? `Splits:\n${splits.map((s, i) => `km ${i + 1}${s.km < 0.99 ? ` (${nf(s.km * 1000)} m)` : ""}: ${a.isRun ? fmtP(s.pace) + "/km" : s.time ? nf(s.km / (s.time / 3600), 1) + " km/h" : "–"}${a.isRun && s.gap ? ` (bereinigt ${fmtP(s.gap)})` : ""}, Puls ${s.hr || "–"}${s.maxHr ? ` (max ${s.maxHr})` : ""}, +${nf(s.up)}/−${nf(s.down)} m${s.cad ? `, ${s.cad} spm` : ""}`).join("\n")}` : "Splits: nicht verfügbar.",
++    `Ähnliche Läufe (±8 s/km): ${sim.length ? sim.map(x => `${x.date} ${x.title}: ${km1(x.dist)} km ${fmtP(x.pace)}/km Puls ${x.hr}`).join("; ") : "keine"}.`
++  ].join("\n");
++}
++function statusBlock() {
++  const r = readiness(); const f = S.fitness;
++  return `Heute ist ${TODAY}. Bereitschaft heute: ${r.state} (${r.items.map(i => i.txt).join("; ") || "keine Werte"}).${f ? ` Leistung laut Coros: VO2max ${f.vo2}, Schwelle ${fmtP(f.thr)}/km, Prognosen 10 km ${fmtT(f.p10)}, HM ${fmtT(f.phm, true)}, M ${fmtT(f.pm, true)}.` : ""}`;
++}
++function rollWeekCtx(end) {
++  const from = addDays(end, -6); const lines = []; let km = 0, sec = 0, n = 0;
++  for (let d = from; d <= end; d = addDays(d, 1)) {
++    const p = S.plan[d]; const acts = (S.records || []).filter(x => x.date === d && (x.dur >= 300 || x.dist >= 1));
++    acts.forEach(x => { if (x.isRun) km += x.dist; sec += x.dur; n++; });
++    lines.push(`${WD[parseIso(d).getDay()]} ${d}: Plan ${p ? `${p.title} (${TYPE_LABEL[p.type]}, ${p.km || 0} km)` : "–"}; gemacht: ${acts.length ? acts.map(actTxt).join(", ") : "nichts"}`);
++  }
++  const l = S.load && (S.load[end] || S.load[latestKey(S.load)]);
++  const hrv = S.hrv ? Object.keys(S.hrv).filter(k => k >= from && k <= end).sort().map(k => `${k.slice(5)}: ${S.hrv[k].avg}`).join(", ") : "";
++  return `Rollierende Trainingswoche ${from} bis ${end}: ${km1(km)} Lauf-km, ${nf(sec / 3600, 1)} h, ${n} Einheiten${l ? `; Belastung kurzfristig ${l.st}, langfristig ${l.lt}, Quote ${nf(l.ratio, 2)} (${trLoad(l.comment)})` : ""}${hrv ? `; HRV in ms ${hrv}` : ""}.\n${lines.join("\n")}`;
++}
++function planCtx(a) {
++  const PH = getPhases(); const cur = PH.find(p => p.from <= a.date && p.to >= a.date); const next = PH.find(p => p.from > a.date);
++  const c = compliance(PLAN_START, TODAY);
++  const weeks = [];
++  for (let i = -3; i <= 2; i++) { const mon = addDays(mondayOf(a.date), 7 * i); const ws = weekStats(mon); if (ws.plannedAll || ws.done) weeks.push(`ab ${mon}: geplant ${km1(ws.plannedAll)} km, gelaufen ${km1(ws.done)} km`); }
++  const ahead = [];
++  for (let d = addDays(a.date, 1), i = 0; i < 14; d = addDays(d, 1), i++) { const p = S.plan[d]; if (p) ahead.push(`${WD[parseIso(d).getDay()]} ${d}: ${p.title} (${TYPE_LABEL[p.type]}, ${p.km || 0} km${p.paceFrom ? `, Pace ${p.paceFrom}–${p.paceTo || ""}` : ""})`); }
++  return `Trainingsplan: aktuelle Phase ${cur ? `„${cur.name}“ (${cur.from} bis ${cur.to})` : "keine"}${next ? `, danach „${next.name}“ ab ${next.from}` : ""}. Planerfüllung seit ${PLAN_START}: ${c.score == null ? "–" : nf(c.score * 100) + " %"} (Umfang ${c.vol == null ? "–" : nf(c.vol * 100) + " %"}, Schlüsseleinheiten ${c.keysDone}/${c.keys}).\nWochenumfänge: ${weeks.join("; ") || "–"}\nGeplant in den 14 Tagen nach der Einheit:\n${ahead.join("\n") || "nichts geplant"}`;
++}
++function m3Ctx() {
++  const recs = (S.records || []).filter(x => x.dur >= 300 || x.dist >= 1); const weeks = [];
++  for (let i = 11; i >= 0; i--) {
++    const mon = addDays(mondayOf(TODAY), -7 * i), sun = addDays(mon, 6);
++    const w = recs.filter(x => x.date >= mon && x.date <= sun); const runs = w.filter(x => x.isRun);
++    const other = w.filter(x => !x.isRun).reduce((s, x) => s + x.dur, 0) / 3600;
++    weeks.push(`ab ${mon}: ${km1(runs.reduce((s, x) => s + x.dist, 0))} km in ${runs.length} Läufen, längster ${km1(Math.max(0, ...runs.map(x => x.dist)))} km${other >= 0.2 ? `, dazu ${nf(other, 1)} h Rad/Sonstiges` : ""}`);
++  }
++  const months = {}; recs.filter(x => x.isRun && x.hr && x.pace && x.dist >= 5).forEach(x => { (months[x.date.slice(0, 7)] = months[x.date.slice(0, 7)] || []).push(x); });
++  const trend = Object.keys(months).sort().map(k => { const m = months[k]; const km = m.reduce((s, x) => s + x.dist, 0), dur = m.reduce((s, x) => s + x.dur, 0); return `${k}: Ø ${fmtP(dur / km)}/km bei Ø Puls ${nf(m.reduce((s, x) => s + x.hr * x.dur, 0) / dur)} (${m.length} Läufe)`; });
++  const longs = recs.filter(x => x.isRun && x.dist >= 18).map(x => `${x.date} ${km1(x.dist)} km ${fmtP(x.pace)}/km Puls ${x.hr || "–"}`);
++  return `Letzte 3 Monate (Coros):\n${weeks.join("\n")}\nTempo und Puls je Monat (Läufe ab 5 km):\n${trend.join("\n") || "–"}\nLange Läufe ab 18 km: ${longs.join("; ") || "keine"}`;
++}
++function goalsCtx() {
++  const up = Object.values(S.races).filter(r => r.date >= TODAY).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
++  return `Ziele und Rennen:\n${up.map(r => { const f = forecast(r); const long = r.dist > 20; return `${r.date} ${r.name} (${nf(r.dist, r.dist % 1 ? 1 : 0)} km, in ${daysBetween(TODAY, r.date)} Tagen${r.priority ? ", Prio " + r.priority : ""}${r.optional ? ", OPTIONAL und noch unsicher: Training nicht darauf ausrichten" : ""})${r.intent ? `; Vorhaben: ${INTENT[r.intent] || r.intent}${r.intentNote ? " – " + r.intentNote : ""}` : ""}${r.goal ? `; Ziel ${fmtT(r.goal, long)}${r.goalTentative ? " (vorläufig)" : ""}` : ""}${f ? `; Prognose ${fmtT(f.pred, long)}${f.prob != null ? `, Chance aufs Ziel ${nf(f.prob * 100)} %` : ""}` : ""}`; }).join("\n") || "keine anstehenden Rennen"}`;
++}
++async function runAna() {
++  const a = lastSession(); if (!a || S.anaBusy || !S.sample) return;
++  const mode = S.ana.mode; const ctx = Object.keys(ANA_CTX).filter(k => S.ana.ctx.includes(k)); if (mode === "ctx" && !ctx.length) return;
++  const key = anaKey(a);
++  S.anaBusy = true; S.anaBusyKey = key; S.anaPartial = ""; S.anaErr = ""; renderAna();
++  try {
++    let l = S.laps[a.label];
++    if (l === undefined) { try { l = S.laps[a.label] = parseLaps(await coros("queryActivityLapData", {labelId: a.label, sportType: a.sport})); } catch { l = null; } }
++    const parts = [sessionBlock(a, l)];
++    if (mode === "ctx") {
++      parts.unshift(statusBlock());
++      if (ctx.includes("week")) parts.push(rollWeekCtx(a.date));
++      if (ctx.includes("plan")) parts.push(planCtx(a));
++      if (ctx.includes("m3")) parts.push(m3Ctx());
++      if (ctx.includes("goals")) parts.push(goalsCtx());
++    }
++    const task = mode === "ctx"
++      ? `Analysiere meine letzte Trainingseinheit im Zusammenhang mit meinen Vorhaben, Zielen und dem Training der letzten Zeit (Kontext: ${ctx.map(k => ANA_CTX[k]).join(", ")}). Wie passt die Einheit dazu, was sagt sie über Form, Belastung und Erholung, und was folgt daraus für die nächsten Tage${ctx.includes("plan") ? " und den Plan" : ""}${ctx.includes("goals") ? " mit Blick auf die Ziele" : ""}? Gliedere in kurze Absätze, die mit „Fazit:“, „Einordnung:“, „Auffällig:“ und „Nächste Tage:“ beginnen. Höchstens 230 Wörter.`
++      : `Analysiere diese einzelne Trainingseinheit für sich: Ausführung und Pacing, Puls und Zonen, Drift, Gelände und ob sie zum geplanten Inhalt des Tages passt; vergleiche mit ähnlichen Läufen, falls vorhanden. Gliedere in kurze Absätze, die mit „Fazit:“, „Gut:“, „Auffällig:“ und „Tipp:“ beginnen. Höchstens 170 Wörter.`;
++    const res = await S.sample([{role: "user", content: `${ANA_SYS}\n\n${task}\n\n${parts.join("\n\n")}`}], {modelTier: "default", cache: false, onText: ({text}) => { S.anaPartial = text; renderAna(); }});
++    const text = String(res.text || "").trim(); if (!text) throw {code: "empty"};
++    const doc = {label: a.label, date: a.date, mode, ctx: mode === "ctx" ? ctx : [], text, at: new Date().toISOString()};
++    S.anaDocs[key] = doc;
++    if (S.db) { try { await S.db.collection("analyses").doc(key).set(doc); } catch {} }
++  } catch (e) {
++    S.anaErr = e && (e.code === "not_granted" || e.code === "rate_limited") ? AI_ERR(e) : `Analyse fehlgeschlagen. Bitte erneut versuchen.${e && e.text ? " Teilantwort: " + e.text : ""}`; S.anaErrKey = key;
++  }
++  S.anaBusy = false; renderAna();
++}
++$("anaMode").addEventListener("click", ev => { const b = ev.target.closest("[data-am]"); if (!b) return; S.ana.mode = b.dataset.am; lsSet("lz-ana", JSON.stringify(S.ana)); renderAna(); });
++$("anaCtxChips").addEventListener("click", ev => {
++  const b = ev.target.closest("[data-ac]"); if (!b) return; const k = b.dataset.ac;
++  S.ana.ctx = S.ana.ctx.includes(k) ? S.ana.ctx.filter(x => x !== k) : [...S.ana.ctx, k]; lsSet("lz-ana", JSON.stringify(S.ana)); renderAna();
++});
++$("anaBtn").addEventListener("click", runAna);
++$("anaOpen").addEventListener("click", () => { const a = lastSession(); if (!a) return; showView("aktivitaeten", true); openActivity(a.label); });
++
+ /* ============ RunPotential ============ */
+ function rpProfile() {
+   const perfs = Object.values(S.races).filter(r => r.result && r.date <= TODAY && r.useInModel).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8)
+@@ -3372,7 +3535,7 @@ new MutationObserver(() => setTimeout(tintRunPotential, 30)).observe(document.do
+ 
+ /* ============ Alles rendern ============ */
+ function renderAll() {
+-  renderToday(); renderBriefing(); renderActivities(); renderPlan(); renderRaces();
++  renderToday(); renderBriefing(); renderAna(); renderActivities(); renderPlan(); renderRaces();
+   $("freshWrap").classList.toggle("off", !(S.records || S.hrv));
+   $("freshWrap").title = $("freshLabel").textContent;
+ }
+-- 
+2.43.0
+

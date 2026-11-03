@@ -1,0 +1,55 @@
+commit b2a0b9beddd195b797016ba41b50587d479bdb0a
+Autor: Claude <noreply@anthropic.com>
+Datum: 2026-10-29 07:10:50 +0000
+
+Laufzentrale: Kontext-Auswahl als Kacheln, RunPotential nahtlos eingebunden
+
+- KI-Kontextanalyse: Auswahl als gleich große Kacheln mit Häkchen und
+  Kurzbeschreibung (4 Spalten am PC, 2 am Handy)
+- RunPotential: Profil wird automatisch aus Coros übernommen und ohne
+  Neuladen eingespielt; eigene Änderungen in der App bleiben erhalten
+- App wird im Hintergrund vorgeladen, füllt den Bildschirm bis zur
+  Tab-Leiste, übernimmt Schrift und Farben, eigener Kopf ausgeblendet
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ac6HY2s3k4utbBVFj1UmrQ
+
+----
+commit 2eb8cb579997421f68c402c0ce89e2fd590e04d6
+Autor: Claude <noreply@anthropic.com>
+Datum: 2026-10-29 07:01:02 +0000
+
+Laufzentrale: KI-Analyse der letzten Einheit auf der Startseite
+
+Neues Panel unter der Wochenleiste: Einzelanalyse der letzten Einheit oder
+Analyse im Kontext mit wählbarem Rahmen (rollierende Woche, Trainingsplan,
+letzte 3 Monate, Ziele & Rennen). Ergebnisse werden je Einheit und Auswahl
+im Datenspeicher abgelegt.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ac6HY2s3k4utbBVFj1UmrQ
+
+----
+commit 67b4dc34f756403150051e0fab6e9e08194d9ca2
+Autor: Claude <noreply@anthropic.com>
+Datum: 2026-10-29 05:07:55 +0000
+
+Laufzentrale: Artefakt zur Weiterarbeit ins Repository übernommen
+
+Hauptseite, RunPotential-Unterseite und hinterlegte Fähigkeiten aus der
+veröffentlichten Version 1792596538-9d1f.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ac6HY2s3k4utbBVFj1UmrQ
+
+----
+commit f5e4633397c7d4fc9b9ccc25f6867d55492eb816
+Autor: Claude <noreply@anthropic.com>
+Datum: 2026-10-29 04:47:20 +0000
+
+Projektanweisungen: PC und Handy parallel, HTML und APK nur auf Anweisung
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01Ac6HXzT5nmGP97fB2Sy3Sd
+
+----

@@ -1,0 +1,17 @@
+Du bist ein erfahrener Laufcoach. Antworte auf Deutsch, konkret und ohne Markdown. Nutze nur die gelieferten Daten und erfinde nichts; fehlt etwas Wichtiges, sag es in einem Halbsatz. Ziel: maximaler sportlicher Erfolg ohne Verletzung.
+
+Analysiere diese einzelne Trainingseinheit für sich: Ausführung und Pacing, Puls und Zonen, Drift, Gelände und ob sie zum geplanten Inhalt des Tages passt; vergleiche mit ähnlichen Läufen, falls vorhanden. Gliedere in kurze Absätze, die mit „Fazit:“, „Gut:“, „Auffällig:“ und „Tipp:“ beginnen. Höchstens 170 Wörter.
+
+Einheit Do 2026-10-29, Lauf „Testlauf 0“: 20,0 km in 1:30:00, Ø 4:30/km, Ø Puls 140, max 158, +40/−32 Hm, Kadenz 172 spm.
+Geplant war an dem Tag: Locker (Locker, 9 km).
+HFmax 157, Schwellenpace laut Coros 4:15/km. Zeit in Pulszonen: Z1 Regeneration 0 %, Z2 Grundlage 0 %, Z3 Tempo 0 %, Z4 Schwelle 87 %, Z5 VO2max 13 %. Puls-Drift 2. gegenüber 1. Hälfte 5,2 %.
+Splits:
+km 1: 5:00/km (bereinigt 4:58), Puls 140 (max 150), +5/−4 m, 172 spm
+km 2: 5:02/km (bereinigt 4:58), Puls 141 (max 151), +5/−4 m, 172 spm
+km 3: 5:04/km (bereinigt 4:58), Puls 142 (max 152), +5/−4 m, 172 spm
+km 4: 5:06/km (bereinigt 4:58), Puls 143 (max 153), +5/−4 m, 172 spm
+km 5: 5:08/km (bereinigt 4:58), Puls 144 (max 154), +5/−4 m, 172 spm
+km 6: 5:10/km (bereinigt 4:58), Puls 145 (max 155), +5/−4 m, 172 spm
+km 7: 5:12/km (bereinigt 4:58), Puls 146 (max 156), +5/−4 m, 172 spm
+km 8: 5:14/km (bereinigt 4:58), Puls 147 (max 157), +5/−4 m, 172 spm
+Ähnliche Läufe (±8 s/km): 2026-10-23 Testlauf 6: 9,0 km 4:30/km Puls 146; 2026-10-17 Testlauf 12: 10,0 km 4:30/km Puls 142; 2026-10-11 Testlauf 18: 11,0 km 4:30/km Puls 148; 2026-10-05 Testlauf 24: 12,0 km 4:30/km Puls 144.
