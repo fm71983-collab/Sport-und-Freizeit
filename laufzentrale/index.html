@@ -983,12 +983,22 @@ $("todayLabel").textContent = dLong(TODAY);
 
 /* ============ Navigation ============ */
 const VIEWS = ["heute", "aktivitaeten", "plan", "rennen", "runpotential"];
+let curView = null, ovStack = [], skipPop = 0;
 function showView(v, push) {
   if (!VIEWS.includes(v)) v = "heute";
+  const prev = curView; curView = v;
   document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", t.dataset.view === v ? "true" : "false"));
   VIEWS.forEach(x => { $("view-" + x).hidden = x !== v; });
   lsSet("lz-view", v);
-  if (push) try { history.replaceState(null, "", "#" + v); } catch {}
+  /* Zurück-Taste: jeder Reiterwechsel ist ein eigener Schritt im Verlauf */
+  try {
+    if (prev === null) history.replaceState({lz: "view", v}, "", "#" + v);
+    else if (push && v !== prev) {
+      /* ist noch ein Fenster offen, ersetzt der Reiter dessen Schritt (das Fenster schließt sich dabei) */
+      if (ovStack.length && history.state && history.state.lz === "ov") history.replaceState({lz: "view", v}, "", "#" + v);
+      else history.pushState({lz: "view", v}, "", "#" + v);
+    }
+  } catch {}
   document.documentElement.classList.toggle("rp-on", v === "runpotential");
   if (v === "runpotential") { initRunPotential(); syncRunPotential(false); scrollTo(0, 0); requestAnimationFrame(sizeRp); }
 }
@@ -3603,6 +3613,32 @@ document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () =>
 applySettings();
 showView((location.hash || "").slice(1) || lsGet("lz-view") || "heute");
 renderAll();
+
+/* ============ Zurück-Taste ============
+   Erst offenes Fenster schließen, dann zum vorherigen Reiter, erst danach verlässt die App. */
+const OVERLAYS = {
+  settingsBg: () => { $("settingsBg").hidden = true; },
+  phBg: () => closePhases(),
+  edBg: () => closeEditor(),
+  dayPop: () => closeDayPop(),
+};
+new MutationObserver(() => {
+  for (const id of Object.keys(OVERLAYS)) {
+    const open = !$(id).hidden, i = ovStack.indexOf(id);
+    if (open && i < 0) { ovStack.push(id); try { history.pushState({lz: "ov", id, v: curView}, ""); } catch {} }
+    else if (!open && i >= 0) {
+      ovStack.splice(i, 1);
+      /* per Knopf/Esc/Klick daneben geschlossen: den Fenster-Schritt wieder aus dem Verlauf nehmen */
+      if (history.state && history.state.lz === "ov") { skipPop++; try { history.back(); } catch { skipPop--; } }
+    }
+  }
+}).observe(document.body, {subtree: true, attributes: true, attributeFilter: ["hidden"]});
+addEventListener("popstate", e => {
+  if (skipPop) { skipPop--; return; }
+  if (ovStack.length) { OVERLAYS[ovStack.pop()](); return; }
+  const v = (e.state && e.state.v) || (location.hash || "").slice(1) || "heute";
+  if (v !== curView) { showView(v, false); requestAnimationFrame(rerunCharts); }
+});
 
 /* ============ Start ============ */
 (async () => {
