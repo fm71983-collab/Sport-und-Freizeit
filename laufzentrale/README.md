@@ -23,3 +23,7 @@ Neu veröffentlichen mit dem Artifact-Tool auf dieselbe URL (`url` = obiger Link
 ## Standard
 
 Die Laufzentrale ist eine bestehende App: Der Entwicklungsstandard 1.1 (`../docs/ENTWICKLUNGSSTANDARD.md`) wird erst bei einer ausdrücklich beauftragten Überarbeitung eingearbeitet.
+
+## HTML-Datei und APK
+
+Gibt es für die Laufzentrale bewusst nicht (Entscheidung vom 08.11.2026, siehe `docs/LIESMICH-Entscheidungen.md`): Die App lebt von KI und Coros-Zugriff über claude.ai. Nach Änderungen nur das Artefakt veröffentlichen; ein HTML/APK-Angebot entfällt.

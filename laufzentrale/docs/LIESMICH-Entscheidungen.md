@@ -58,6 +58,7 @@ Der Basis-Commit des Projekts davor: f5e4633 (Projektanweisungen).
 ### Projektregeln (aus CLAUDE.md)
 - Jede Änderung für PC und Handy zugleich, in beiden getestet.
 - HTML-Dateien und APKs nur auf ausdrückliche Anweisung. In dieser Sitzung wurde nichts davon gebaut oder verschickt (Antwort des Nutzers: „Später“).
+- **Entscheidung 08.11.2026: Für die Laufzentrale gibt es keine HTML-Datei und keine APK.** Ohne claude.ai fehlen KI, Coros-Zugriff und Datenspeicher (`window.claude`); ohne KI bietet die App gegenüber der Coros-App kaum Mehrwert. Eine reine Link-APK bringt gegenüber dem Startbildschirm-Link nichts (den hat der Nutzer bereits). Nach Änderungen daher nur das Artefakt veröffentlichen und **kein** HTML/APK-Angebot machen.
 
 ## Tests
 - Chromium/Playwright mit simulierten Coros-Daten und Platzhalter-Antworten statt echter Claude-Antworten; PC 1280 × 900 und Handy 390 × 844.
@@ -65,4 +66,4 @@ Der Basis-Commit des Projekts davor: f5e4633 (Projektanweisungen).
 - Nicht geprüft: echte Coros-Daten und echte Claude-Antworten; das Ausblenden der einzelnen Werkzeug-Schaltfläche (nach dem letzten Testlauf ergänzt).
 
 ## Offen
-- HTML-Datei und APK aktualisieren, sobald gewünscht.
+- (erledigt, siehe unten: keine HTML-Datei und keine APK)
