@@ -2,7 +2,7 @@
 
 Lauf-Dashboard als Claude-Artefakt: https://claude.ai/artifact/Si9LrtxufGk51tpDwVEijX
 
-Stand im Repository = veröffentlichte Artefakt-Version 30 (`1794176217-5a80`, 08.11.2026): Rennergebnisse werden aus Coros erkannt und mit Ziel und App-Prognose verglichen; Zurück-Taste schließt erst Fenster, dann vorheriger Reiter.
+Stand im Repository = veröffentlichte Artefakt-Version 31 (`1794176709-d9ff`, 08.11.2026): Lauf am Renntag wird erst nach Rückfrage („War dieser Lauf das Rennen?“) als Ergebnis übernommen und dann mit Ziel und App-Prognose verglichen; Zurück-Taste schließt erst Fenster, dann vorheriger Reiter.
 
 Herkunft: Export aus `fm71983-collab/claude-verbrauch`, Branch `ccr-3bbca5d6-a27vf2`; die drei Commits wurden mit `git am` samt Verlauf übernommen.
 
