@@ -541,6 +541,11 @@ textarea{resize:vertical;min-height:60px}
 .pacetbl{font-size:13.5px}
 .pacetbl td,.pacetbl th{padding:6px 4px}
 .pacebox .filters .chip{padding:4px 10px;font-size:12.5px}
+.race.done{border-color:color-mix(in srgb,var(--good) 45%,var(--line))}
+.race.done .res-main{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center}
+.race.done .res-time{font-size:44px;color:var(--good)}
+.race.done .kv dd small.good{color:var(--good)}.race.done .kv dd small.warn{color:var(--warn)}
+@media(max-width:520px){.race.done .res-main{grid-template-columns:1fr;gap:10px}}
 .race.opt{border-style:dashed;border-color:color-mix(in srgb,var(--muted) 55%,transparent)}
 :root[data-skin="clean"] .race.opt{border:1.5px dashed color-mix(in srgb,var(--muted) 45%,transparent)}
 .race .eyebrow .pill{margin-left:4px;vertical-align:1px}
@@ -965,6 +970,12 @@ function fmtT(s, forceH) {
   return (h || forceH) ? `${h}:${pad(m)}:${pad(x)}` : `${m}:${pad(x)}`;
 }
 const fmtP = s => Number.isFinite(s) && s > 0 ? `${Math.floor(s / 60)}:${pad(Math.round(s % 60) === 60 ? 59 : Math.round(s % 60))}` : "–";
+/* Formwert ganzzahlig mit Vorzeichen; -0,4 wird zu „0“ statt „-0“ */
+const formTxt = v => { const n = Math.round(v) || 0; return (n > 0 ? "+" : "") + nf(n); };
+/* Rennen steht noch bevor: künftig oder heute ohne Ergebnis */
+const isUpcoming = r => r.date > TODAY || (r.date === TODAY && !r.result);
+/* Ergebnis auf flache Strecke umgerechnet (Streckenfaktor wie in der Prognose) */
+const flatResult = r => r.result / (r.course || 1);
 const km1 = v => (Math.round(v * 10) / 10).toLocaleString("de-DE", {minimumFractionDigits: 1, maximumFractionDigits: 1});
 const nf = (v, d = 0) => Number(v).toLocaleString("de-DE", {minimumFractionDigits: d, maximumFractionDigits: d});
 const median = a => { const s = [...a].sort((x, y) => x - y); const m = s.length >> 1; return s.length ? (s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) : NaN; };
@@ -1205,7 +1216,8 @@ async function loadAll() {
   const d = new Date(ts);
   $("freshLabel").textContent = errs.length === Object.keys(LOADERS).length ? "Keine Coros-Daten" : `Coros-Stand ${pad(d.getHours())}:${pad(d.getMinutes())} Uhr`;
   renderAll();
-  maybeSnapshotForecasts();
+  await maybeSnapshotForecasts();
+  detectRaceResults();
   if (S.records) loadHfCoros();
   autoAI(); rpReady();
 }
@@ -1568,7 +1580,7 @@ function renderHeroX(r) {
   const p = S.plan[TODAY]; const done = (S.records || []).filter(a => a.date === TODAY && (a.isRun || a.cat === "bike"));
   if (done.length) chips.push(`<button class="hx-chip" type="button" data-hx="act" style="--dot:var(--good)"><i></i><span>Heute erledigt: <b>${km1(done.reduce((s2, a) => s2 + a.dist, 0))} km</b></span></button>`);
   else if (p) chips.push(`<button class="hx-chip" type="button" data-hx="plan" style="--dot:${TYPE_COL[p.type] || "var(--muted)"}"><i></i><span>${p.type === "rest" ? "Heute Ruhetag" : `Heute: <b>${esc(p.title)}</b>${p.km ? ` · ${km1(p.km)} km` : ""}`}</span></button>`);
-  const upAll = Object.values(S.races).filter(x => x.date >= TODAY).sort((a, b) => a.date.localeCompare(b.date));
+  const upAll = Object.values(S.races).filter(isUpcoming).sort((a, b) => a.date.localeCompare(b.date));
   const nr = upAll.find(x => !x.optional) || upAll[0];
   if (nr) { const dd = daysBetween(TODAY, nr.date); chips.push(`<button class="hx-chip" type="button" data-hx="race" style="--dot:var(--accent-2)"><i></i><span>${esc(shortRace(nr))} in <b>${dd}</b> ${dd === 1 ? "Tag" : "Tagen"}</span></button>`); }
   const ws = weekStats(mondayOf(TODAY));
@@ -1643,7 +1655,7 @@ function renderToday() {
     ${tm ? `<div class="small muted" style="margin-top:12px">Morgen: <b style="color:var(--ink)">${esc(tm.title)}</b>${tm.km ? ` · ${km1(tm.km)} km` : ""}</div>` : ""}`);
 
   // Nächstes Rennen
-  const upAll = Object.values(S.races).filter(x => x.date >= TODAY).sort((a, b) => a.date.localeCompare(b.date));
+  const upAll = Object.values(S.races).filter(isUpcoming).sort((a, b) => a.date.localeCompare(b.date));
   const up = upAll.filter(x => !x.optional).concat(upAll.filter(x => x.optional));
   if (up.length) {
     const nr = up[0]; const f = forecast(nr); const days = daysBetween(TODAY, nr.date); const long = nr.dist > 20;
@@ -2153,8 +2165,8 @@ function renderForm() {
   $("formTitle").textContent = target ? `Form bis ${target.name}` : "Form, nächste 6 Wochen";
   const chips = m0.ups.slice(0, 4).map(r => `<button class="chip" type="button" data-formrace="${esc(r.id)}" aria-pressed="${target && target.id === r.id}">${esc(shortRace(r))}</button>`).join("");
   setHTML($("formKpis"), `${chips ? `<div class="filters" style="margin-bottom:10px">${chips}</div>` : ""}<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));margin-top:0">
-    ${kpi("Form heute", (now.lt - now.st >= 0 ? "+" : "") + nf(now.lt - now.st), "", `<span class="pill ${cn}">${wn}</span> Quote ${nf(qn, 2)}`)}
-    ${kpi(target ? "Form am Renntag" : `Form am ${dShort(last.d)}`, (last.lt - last.st >= 0 ? "+" : "") + nf(last.lt - last.st), "", `<span class="pill ${cl}">${wl}</span> Quote ${nf(ql, 2)}`)}
+    ${kpi("Form heute", formTxt(now.lt - now.st), "", `<span class="pill ${cn}">${wn}</span> Quote ${nf(qn, 2)}`)}
+    ${kpi(target ? "Form am Renntag" : `Form am ${dShort(last.d)}`, formTxt(last.lt - last.st), "", `<span class="pill ${cl}">${wl}</span> Quote ${nf(ql, 2)}`)}
     ${kpi("Fitness", nf(last.lt), "", `heute ${nf(now.lt)} · ${last.lt >= now.lt ? "+" : "−"}${nf(Math.abs(last.lt - now.lt))}`)}</div>`);
   chartInto($("formChart"), W => formChart(W, m0));
   $("formNote").textContent = m0.planEnd ? `Plan bis ${dShort(m0.planEnd)}, danach Belastung wie bisher (Ø ${nf(m0.avg)}/Tag)` : `ohne Plan: Belastung wie bisher (Ø ${nf(m0.avg)}/Tag)`;
@@ -2178,7 +2190,7 @@ const getPhases = () => S.phases && S.phases.length ? S.phases : PHASES;
 function renderSeasonHead() {
   const PH = getPhases(); const y0 = (PH[0] || {from: TODAY}).from.slice(0, 4), y1 = (PH[PH.length - 1] || {to: TODAY}).to.slice(0, 4);
   $("seasonEyebrow").textContent = `Saison ${y0 === y1 ? y0 : `${y0}/${y1.slice(2)}`}`;
-  const last = Object.values(S.races).filter(r => r.date >= TODAY && !r.optional).sort((a, b) => a.date.localeCompare(b.date)).pop();
+  const last = Object.values(S.races).filter(r => isUpcoming(r) && !r.optional).sort((a, b) => a.date.localeCompare(b.date)).pop();
   $("seasonTitle").textContent = last ? `Zeitstrahl bis ${shortRace(last)}` : "Zeitstrahl";
 }
 let phDraft = [];
@@ -2224,7 +2236,7 @@ $("phBg").addEventListener("click", ev => {
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("phBg").hidden) closePhases(); });
 
 function seasonChart(W) {
-  const PH = getPhases(); const ends = PH.map(p => p.to).concat(Object.values(S.races).filter(r => r.date >= TODAY).map(r => r.date));
+  const PH = getPhases(); const ends = PH.map(p => p.to).concat(Object.values(S.races).filter(isUpcoming).map(r => r.date));
   const s0 = addDays([TODAY, ...PH.map(p => p.from)].sort()[0], -7), s1 = addDays(ends.sort().pop() || addDays(TODAY, 180), 7); const span = daysBetween(s0, s1);
   const m = {l: 8, r: 8}; const X = d => m.l + daysBetween(s0, d) / span * (W - m.l - m.r);
   const barY = 24, barH = narrow(W) ? 24 : 28;
@@ -2561,7 +2573,7 @@ function riegelFit(perfs) {
 }
 function perfWeight(date) { const d = daysBetween(date, TODAY); return d <= 90 ? 1 : d <= 365 ? 0.6 : 0.3; }
 function modelIndex() {
-  const perfs = Object.values(S.races).filter(r => r.result && r.useInModel && r.date <= TODAY).map(r => ({dist: r.dist, time: r.result, date: r.date}));
+  const perfs = Object.values(S.races).filter(r => r.result && r.useInModel && r.date <= TODAY).map(r => ({dist: r.dist, time: flatResult(r), date: r.date}));
   if (!perfs.length) return null;
   const k = riegelFit(perfs);
   let tot = 0, w = 0; perfs.forEach(p => { const wt = perfWeight(p.date); tot += p.time / Math.pow(p.dist / 10, k) * wt; w += wt; });
@@ -2617,7 +2629,7 @@ function perfCurve(W) {
   const H = narrow(W) ? 240 : 290, m = {l: 40, r: 14, t: 16, b: 30};
   const d0 = 3.5, d1 = 46; const LX = d => m.l + (Math.log(d) - Math.log(d0)) / (Math.log(d1) - Math.log(d0)) * (W - m.l - m.r);
   const pts = [];
-  past.forEach(r => pts.push(r.result / r.dist));
+  past.forEach(r => pts.push(flatResult(r) / r.dist));
   const cor = S.fitness ? [[5, S.fitness.p5], [10, S.fitness.p10], [21.0975, S.fitness.phm], [42.195, S.fitness.pm]].filter(x => x[1] > 0) : [];
   cor.forEach(([d, t]) => pts.push(t / d));
   const up = Object.values(S.races).filter(r => r.date > TODAY).map(r => ({r, f: forecast(r)})).filter(x => x.f);
@@ -2639,8 +2651,8 @@ function perfCurve(W) {
     if (r.goal) { const gy = Y(r.goal / r.dist); g += `<path d="M${f1(x - 5)},${f1(gy - 5)}l10,10M${f1(x + 5)},${f1(gy - 5)}l-10,10" style="stroke:var(--ink);stroke-width:2;pointer-events:none"/>`; }
   });
   past.forEach(r => {
-    const x = LX(r.dist), y = Y(r.result / r.dist); const inM = r.useInModel;
-    g += `<circle cx="${f1(x)}" cy="${f1(y)}" r="6" style="fill:${inM ? "var(--accent)" : "var(--surface)"};stroke:${inM ? "var(--surface)" : "var(--muted)"};stroke-width:2" data-tip="${esc(`${r.name} · ${dShort(r.date)}${parseIso(r.date).getFullYear()}\n${fmtT(r.result, r.dist > 20)} · ${fmtP(r.result / r.dist)}/km${inM ? "" : "\nnicht im Modell"}${r.note ? ` (${r.note})` : ""}`)}"/>`;
+    const x = LX(r.dist), y = Y(flatResult(r) / r.dist); const inM = r.useInModel;
+    g += `<circle cx="${f1(x)}" cy="${f1(y)}" r="6" style="fill:${inM ? "var(--accent)" : "var(--surface)"};stroke:${inM ? "var(--surface)" : "var(--muted)"};stroke-width:2" data-tip="${esc(`${r.name} · ${dShort(r.date)}${parseIso(r.date).getFullYear()}\n${fmtT(r.result, r.dist > 20)} · ${fmtP(r.result / r.dist)}/km${(r.course || 1) !== 1 ? `\nflach umgerechnet ${fmtT(flatResult(r), r.dist > 20)} (×${nf(r.course, 2)})` : ""}${inM ? "" : "\nnicht im Modell"}${r.note ? ` (${r.note})` : ""}`)}"/>`;
   });
   $("curveNote").textContent = m0 ? `Ermüdungsexponent ${nf(m0.k, 3)} aus ${m0.n} Rennen · × = Zielzeit` : "";
   return svgOpen(W, H, "Leistungskurve") + g + `</svg>`;
@@ -2657,7 +2669,8 @@ function renderRaces() {
   const all = Object.values(S.races);
   chartInto($("perfCurve"), W => perfCurve(W));
   if (!all.length) { setHTML($("raceCards"), `<div class="panel"><div class="skeleton">${S.dbReady ? "Noch keine Rennen gespeichert." : "Rennen werden geladen …"}</div></div>`); setHTML($("pastRaces"), ""); return; }
-  const upcoming = all.filter(r => r.date >= TODAY).sort((a, b) => a.date.localeCompare(b.date));
+  const upcoming = all.filter(isUpcoming).sort((a, b) => a.date.localeCompare(b.date));
+  const doneRecent = all.filter(r => r.result && !isUpcoming(r) && r.date >= addDays(TODAY, -14)).sort((a, b) => b.date.localeCompare(a.date));
   const ae = document.activeElement;
   const focused = ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && $("raceCards").contains(ae);
   const html = upcoming.map(r => {
@@ -2687,9 +2700,9 @@ function renderRaces() {
         `<div class="ractions"><button class="btn link" type="button" data-qopen="${esc(r.id)}">${r.intent ? "Vorhaben" : "Vorhaben?"}</button>${f ? `<button class="btn link" type="button" data-pace="${esc(r.id)}">${S.pace && S.pace.id === r.id ? "Einteilung zu" : "Einteilung"}</button>` : ""}${r.bg || bgState.loading[r.id] ? "" : `<button class="btn link" type="button" data-bg="${esc(r.id)}">Hintergrund</button>`}<button class="btn link" type="button" data-optional="${esc(r.id)}" title="${r.optional ? "Rennen fest einplanen" : "Als optional markieren: Prognosen laufen weiter, der Plan richtet sich nicht danach"}">${r.optional ? "Fest einplanen" : "Optional"}</button>${r.intent && !r.optional ? `<button class="btn link" type="button" data-adj="${esc(r.id)}">Plan anpassen</button>` : ""}<button class="btn link" type="button" data-hist="${esc(r.id)}">${r.history && r.history.length ? "Historie" : "Schon gelaufen?"}</button><button class="btn link del" type="button" data-delrace="${esc(r.id)}">Löschen</button></div>`}
     </article>`;
   }).join("") || `<div class="panel"><div class="skeleton">Keine anstehenden Rennen.</div></div>`;
-  if (!focused) setHTML($("raceCards"), html);
-  const past = all.filter(r => r.date < TODAY).sort((a, b) => b.date.localeCompare(a.date));
-  setHTML($("pastRaces"), past.length ? `<table class="resp"><thead><tr><th>Datum</th><th>Rennen</th><th class="n">km</th><th class="n">Zeit</th><th class="n">Pace</th><th>im Modell</th><th></th></tr></thead><tbody>${past.map(r => `<tr><td data-l="Datum">${dShort(r.date)}${parseIso(r.date).getFullYear()}</td><td class="wide" data-l="Rennen">${esc(r.name)}</td><td class="n" data-l="km">${nf(r.dist, r.dist % 1 ? 2 : 0)}</td><td class="n" data-l="Zeit">${r.result ? fmtT(r.result, r.dist > 20) : "–"}</td><td class="n" data-l="Pace">${r.result ? fmtP(r.result / r.dist) : "–"}</td><td data-l="Modell">${r.useInModel ? `<span class="pill good">ja</span>` : `<span class="pill neutral">nein</span>`}</td><td data-l="">${S.delAsk === r.id ? `<span class="small">Wirklich löschen? <button class="btn primary" type="button" data-delyes="${esc(r.id)}">Ja</button> <button class="btn ghost" type="button" data-delno>Nein</button></span>` : `<button class="btn ghost del" type="button" data-delrace="${esc(r.id)}" aria-label="${esc(r.name)} löschen">Löschen</button>`}</td></tr>`).join("")}</tbody></table>` : `<div class="skeleton">Keine Rennen.</div>`);
+  if (!focused) setHTML($("raceCards"), doneRecent.map(resultCard).join("") + html);
+  const past = all.filter(r => !isUpcoming(r)).sort((a, b) => b.date.localeCompare(a.date));
+  setHTML($("pastRaces"), past.length ? `<table class="resp"><thead><tr><th>Datum</th><th>Rennen</th><th class="n">km</th><th class="n">Zeit</th><th class="n">Pace</th><th>Vergleich</th><th>im Modell</th><th></th></tr></thead><tbody>${past.map(r => `<tr><td data-l="Datum">${dShort(r.date)}${parseIso(r.date).getFullYear()}</td><td class="wide" data-l="Rennen">${esc(r.name)}</td><td class="n" data-l="km">${nf(r.dist, r.dist % 1 ? 2 : 0)}</td><td class="n" data-l="Zeit">${r.result ? fmtT(r.result, r.dist > 20) : "–"}</td><td class="n" data-l="Pace">${r.result ? fmtP(r.result / r.dist) : "–"}</td><td class="small" data-l="Vergleich">${cmpShort(r)}</td><td data-l="Modell">${r.useInModel ? `<span class="pill good">ja</span>` : `<span class="pill neutral">nein</span>`}</td><td data-l="">${S.delAsk === r.id ? `<span class="small">Wirklich löschen? <button class="btn primary" type="button" data-delyes="${esc(r.id)}">Ja</button> <button class="btn ghost" type="button" data-delno>Nein</button></span>` : `<button class="btn ghost del" type="button" data-delrace="${esc(r.id)}" aria-label="${esc(r.name)} löschen">Löschen</button>`}</td></tr>`).join("")}</tbody></table>` : `<div class="skeleton">Keine Rennen.</div>`);
 }
 function delAsk(r) {
   if (S.delAsk !== r.id) return "";
@@ -3257,13 +3270,79 @@ let snapshotted = false;
 async function maybeSnapshotForecasts() {
   if (snapshotted || !S.db || !S.dbReady || !S.fitness || !S.records) return;
   snapshotted = true;
-  for (const r of Object.values(S.races).filter(x => x.date >= TODAY)) {
+  for (const r of Object.values(S.races).filter(isUpcoming)) {
     const id = `${r.id}_${TODAY}`; if (S.forecasts[id]) continue;
     const f = forecast(r); if (!f) continue;
     const data = {race: r.id, date: TODAY, pred: Math.round(f.pred), prob: f.prob == null ? null : Math.round(f.prob * 1000) / 1000};
     try { await S.db.collection("forecasts").doc(id).set(data); S.forecasts[id] = data; } catch {}
   }
 }
+
+/* ============ Rennergebnisse aus Coros ============ */
+const resDiff = (res, ref) => { const d = Math.round(res - ref); return {d, txt: Math.abs(d) < 3 ? "genau getroffen" : `${fmtT(Math.abs(d))} ${d < 0 ? "schneller" : "langsamer"}`, cls: d <= 0 ? "good" : "warn"}; };
+function cmpShort(r) {
+  if (!r.result) return "–"; const out = [];
+  if (r.goal) { const d = Math.round(r.result - r.goal); out.push(`Ziel ${d <= 0 ? "−" : "+"}${fmtT(Math.abs(d))}`); }
+  if (r.predAtRace) { const d = Math.round(r.result - r.predAtRace); out.push(`Progn. ${d <= 0 ? "−" : "+"}${fmtT(Math.abs(d))}`); }
+  return out.join(" · ") || "–";
+}
+function recentResultsTxt() {
+  return Object.values(S.races).filter(r => r.result && !isUpcoming(r) && r.date >= addDays(TODAY, -120)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4)
+    .map(r => `${r.date} ${r.name} ${nf(r.dist, r.dist % 1 ? 1 : 0)} km in ${fmtT(r.result, true)}${r.goal ? ` (Ziel ${fmtT(r.goal, true)})` : ""}${r.predAtRace ? ` (Prognose ${fmtT(r.predAtRace, true)})` : ""}${(r.course || 1) !== 1 ? ` [Streckenfaktor ×${nf(r.course, 2)}]` : ""}`).join("; ");
+}
+/* Lauf, der zum Rennen passt: gleicher Tag, Distanz ±12 %, die nächstliegende */
+function raceActivity(r) {
+  const c = (S.records || []).filter(a => a.isRun && a.date === r.date && a.dur > 0 && Math.abs(a.dist - r.dist) / r.dist <= 0.12);
+  return c.sort((a, b) => Math.abs(a.dist - r.dist) - Math.abs(b.dist - r.dist))[0] || null;
+}
+let detecting = false;
+async function detectRaceResults() {
+  if (detecting || !S.db || !S.dbReady || !S.records) return;
+  detecting = true; let changed = false;
+  try {
+    for (const r of Object.values(S.races)) {
+      if (r.result || r.resultDeclined || r.date > TODAY || r.date < addDays(TODAY, -60)) continue;
+      const a = raceActivity(r); if (!a) continue;
+      // Prognose der App vor dem Start: letzter Stand bis zum Renntag, sonst jetzt (noch ohne dieses Ergebnis)
+      const snap = Object.values(S.forecasts).filter(f => f.race === r.id && f.date <= r.date && f.pred).sort((x, y) => y.date.localeCompare(x.date))[0];
+      const f = snap ? null : forecast(r);
+      const data = {result: Math.round(a.dur), useInModel: true, resultAuto: true, resultLabel: a.label || null, resultDist: Math.round(a.dist * 100) / 100,
+        resultHr: a.hr || null, predAtRace: snap ? snap.pred : f ? Math.round(f.pred) : null, predDate: snap ? snap.date : f ? TODAY : null};
+      try { await S.db.collection("races").doc(r.id).update(data); S.races[r.id] = {...S.races[r.id], ...data}; changed = true; } catch {}
+    }
+  } finally { detecting = false; }
+  if (changed) renderAll();
+}
+function resultCard(r) {
+  const long = r.dist > 20; const cf = r.course || 1;
+  const g = r.goal ? resDiff(r.result, r.goal) : null, p = r.predAtRace ? resDiff(r.result, r.predAtRace) : null;
+  const fix = S.resFix === r.id;
+  return `<article class="panel race done">
+    <div class="rtop"><div><div class="eyebrow">${dLong(r.date)}${r.priority ? ` · Prio ${esc(r.priority)}` : ""}</div><h2>${esc(r.name)}</h2><div class="small muted">${nf(r.dist, r.dist % 1 ? 1 : 0)} km${r.courseNote ? ` · ${esc(r.courseNote)}` : ""}</div></div>
+      <span class="pill good">Gelaufen ✓</span></div>
+    <div class="res-main"><div><div class="bignum num res-time">${fmtT(r.result, long)}</div><div class="small muted">${fmtP(r.result / r.dist)}/km${r.resultHr ? ` · Ø ${r.resultHr} bpm` : ""}</div></div>
+      <dl class="kv"><dt>Ziel${r.goal && r.goalTentative ? "<small>vorläufig</small>" : ""}</dt><dd>${r.goal ? `${fmtT(r.goal, long)}<small class="${g.cls}">${g.txt}</small>` : `<span class="muted">keins</span>`}</dd>
+        <dt>App-Prognose${r.predDate ? `<small>Stand ${dShort(r.predDate)}</small>` : ""}</dt><dd>${r.predAtRace ? `${fmtT(r.predAtRace, long)}<small class="${p.cls}">${p.txt}</small>` : `<span class="muted">–</span>`}</dd></dl></div>
+    <p class="note">${r.resultAuto ? `Aus Coros erkannt${r.resultDist ? ` (${km1(r.resultDist)} km gemessen)` : ""}. ` : ""}${r.useInModel ? `Fließt in die Prognosen der anderen Rennen und in die Trainingsplanung ein${cf !== 1 ? ` – wegen der Strecke bereinigt (×${nf(cf, 2)}), das entspricht ${fmtT(flatResult(r), long)} auf flacher Strecke` : ""}.` : "Wird im Prognosemodell nicht berücksichtigt."}</p>
+    ${fix ? `<div class="goalrow"><label class="small muted" for="resIn-${esc(r.id)}">Offizielle Zeit</label><input id="resIn-${esc(r.id)}" data-resin="${esc(r.id)}" value="${fmtT(r.result, long)}" class="t-in" inputmode="decimal" autocomplete="off"><button class="btn primary" type="button" data-ressave="${esc(r.id)}">Speichern</button><button class="btn ghost" type="button" data-resfix="">Abbrechen</button></div>` : ""}
+    <div class="ractions"><button class="btn link" type="button" data-resfix="${esc(r.id)}">Zeit korrigieren</button><button class="btn link" type="button" data-resmodel="${esc(r.id)}">${r.useInModel ? "Nicht ins Modell" : "Ins Modell aufnehmen"}</button><button class="btn link del" type="button" data-resdel="${esc(r.id)}" title="Falls der erkannte Lauf nicht das Rennen war">Kein Rennergebnis</button></div>
+  </article>`;
+}
+async function updRace(id, upd) {
+  if (!S.db) return false;
+  try { await S.db.collection("races").doc(id).update(upd); S.races[id] = {...S.races[id], ...upd}; renderAll(); return true; } catch { showToast("Speichern hat nicht geklappt. Bitte erneut versuchen."); return false; }
+}
+$("raceCards").addEventListener("click", async ev => {
+  const t = ev.target;
+  const fx = t.closest("[data-resfix]"); if (fx) { S.resFix = fx.dataset.resfix || null; renderRaces(); if (S.resFix) { const i = document.querySelector(`[data-resin="${CSS.escape(S.resFix)}"]`); if (i) i.focus(); } return; }
+  const sv = t.closest("[data-ressave]"); if (sv) {
+    const id = sv.dataset.ressave; const inp = document.querySelector(`[data-resin="${CSS.escape(id)}"]`); const sec = toSec(inp.value);
+    if (!(sec > 0)) { inp.setCustomValidity("Format h:mm:ss oder mm:ss"); inp.reportValidity(); return; }
+    S.resFix = null; await updRace(id, {result: sec, resultAuto: false}); return;
+  }
+  const md = t.closest("[data-resmodel]"); if (md) { const id = md.dataset.resmodel; await updRace(id, {useInModel: !S.races[id].useInModel}); return; }
+  const dl = t.closest("[data-resdel]"); if (dl) { await updRace(dl.dataset.resdel, {result: null, useInModel: false, resultAuto: false, resultDeclined: true}); return; }
+});
 
 /* ============ Datenspeicher ============ */
 async function loadDb() {
@@ -3276,7 +3355,7 @@ async function loadDb() {
     S.forecasts = {}; fc.docs.forEach(d => { S.forecasts[d.id] = d.data(); });
     S.dbReady = true;
   } catch (e) { S.dbError = true; }
-  renderAll(); maybeSnapshotForecasts(); autoAI(); rpReady();
+  renderAll(); await maybeSnapshotForecasts(); detectRaceResults(); autoAI(); rpReady();
 }
 
 /* ============ Claude-Analyse ============ */
@@ -3285,8 +3364,8 @@ function contextBlock() {
   const hrv = S.hrv ? Object.keys(S.hrv).sort().slice(-7).map(k => `${k}: ${S.hrv[k].avg} ms (Normal ${S.hrv[k].lo}-${S.hrv[k].hi}, Baseline ${S.hrv[k].base})`).join("; ") : "n/a";
   const rhr = S.rhr ? Object.keys(S.rhr).sort().slice(-7).map(k => `${k}: ${S.rhr[k]}`).join("; ") : "n/a";
   const f = S.fitness ? `VO2max ${S.fitness.vo2}, Schwelle ${fmtP(S.fitness.thr)}/km, Coros-Prognosen 10 km ${fmtT(S.fitness.p10)}, HM ${fmtT(S.fitness.phm, true)}, M ${fmtT(S.fitness.pm, true)}` : "n/a";
-  const races = Object.values(S.races).filter(x => x.date >= TODAY).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4).map(x => `${x.date} ${x.name}${x.optional ? " [OPTIONAL, noch unsicher: Training NICHT darauf ausrichten, kein Tapering]" : ""}${x.history && x.history.length ? ` [schon gelaufen: ${x.history.map(h => `${h.date.slice(0, 4)} in ${fmtT(h.dur, true)}`).join(", ")}]` : ""} (${x.dist} km${x.goal ? ", Ziel " + fmtT(x.goal, x.dist > 20) : ""}${x.intent ? ", Vorhaben: " + (INTENT[x.intent] || x.intent) + (x.intentNote ? " – " + x.intentNote : "") : ""})`).join("; ");
-  return `Heute: ${TODAY}. Bereitschaft: ${r.state} (${r.items.map(i => i.txt).join("; ")}).\nHRV: ${hrv}\nRuhepuls: ${rhr}\nLeistung: ${f}\nNächste Rennen: ${races}`;
+  const races = Object.values(S.races).filter(isUpcoming).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 4).map(x => `${x.date} ${x.name}${x.optional ? " [OPTIONAL, noch unsicher: Training NICHT darauf ausrichten, kein Tapering]" : ""}${x.history && x.history.length ? ` [schon gelaufen: ${x.history.map(h => `${h.date.slice(0, 4)} in ${fmtT(h.dur, true)}`).join(", ")}]` : ""} (${x.dist} km${x.goal ? ", Ziel " + fmtT(x.goal, x.dist > 20) : ""}${x.intent ? ", Vorhaben: " + (INTENT[x.intent] || x.intent) + (x.intentNote ? " – " + x.intentNote : "") : ""})`).join("; ");
+  return `Heute: ${TODAY}. Bereitschaft: ${r.state} (${r.items.map(i => i.txt).join("; ")}).\nHRV: ${hrv}\nRuhepuls: ${rhr}\nLeistung: ${f}\nNächste Rennen: ${races}${recentResultsTxt() ? "\nLetzte Rennergebnisse: " + recentResultsTxt() : ""}`;
 }
 const AI_SYS = "Du bist ein erfahrener Laufcoach. Antworte auf Deutsch, knapp und konkret (höchstens 180 Wörter), ohne Markdown-Überschriften. Nutze nur die gelieferten Daten und erfinde nichts. Ziel: maximaler sportlicher Erfolg ohne Verletzung.";
 async function runSample(box, prompt, btn) {
@@ -3478,8 +3557,8 @@ function m3Ctx() {
   return `Letzte 3 Monate (Coros):\n${weeks.join("\n")}\nTempo und Puls je Monat (Läufe ab 5 km):\n${trend.join("\n") || "–"}\nLange Läufe ab 18 km: ${longs.join("; ") || "keine"}`;
 }
 function goalsCtx() {
-  const up = Object.values(S.races).filter(r => r.date >= TODAY).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
-  return `Ziele und Rennen:\n${up.map(r => { const f = forecast(r); const long = r.dist > 20; return `${r.date} ${r.name} (${nf(r.dist, r.dist % 1 ? 1 : 0)} km, in ${daysBetween(TODAY, r.date)} Tagen${r.priority ? ", Prio " + r.priority : ""}${r.optional ? ", OPTIONAL und noch unsicher: Training nicht darauf ausrichten" : ""})${r.intent ? `; Vorhaben: ${INTENT[r.intent] || r.intent}${r.intentNote ? " – " + r.intentNote : ""}` : ""}${r.goal ? `; Ziel ${fmtT(r.goal, long)}${r.goalTentative ? " (vorläufig)" : ""}` : ""}${f ? `; Prognose ${fmtT(f.pred, long)}${f.prob != null ? `, Chance aufs Ziel ${nf(f.prob * 100)} %` : ""}` : ""}`; }).join("\n") || "keine anstehenden Rennen"}`;
+  const up = Object.values(S.races).filter(isUpcoming).sort((a, b) => a.date.localeCompare(b.date)).slice(0, 5);
+  return `${recentResultsTxt() ? "Letzte Rennergebnisse: " + recentResultsTxt() + "\n" : ""}Ziele und Rennen:\n${up.map(r => { const f = forecast(r); const long = r.dist > 20; return `${r.date} ${r.name} (${nf(r.dist, r.dist % 1 ? 1 : 0)} km, in ${daysBetween(TODAY, r.date)} Tagen${r.priority ? ", Prio " + r.priority : ""}${r.optional ? ", OPTIONAL und noch unsicher: Training nicht darauf ausrichten" : ""})${r.intent ? `; Vorhaben: ${INTENT[r.intent] || r.intent}${r.intentNote ? " – " + r.intentNote : ""}` : ""}${r.goal ? `; Ziel ${fmtT(r.goal, long)}${r.goalTentative ? " (vorläufig)" : ""}` : ""}${f ? `; Prognose ${fmtT(f.pred, long)}${f.prob != null ? `, Chance aufs Ziel ${nf(f.prob * 100)} %` : ""}` : ""}`; }).join("\n") || "keine anstehenden Rennen"}`;
 }
 async function runAna() {
   const a = lastSession(); if (!a || S.anaBusy || !S.sample) return;
@@ -3521,7 +3600,7 @@ $("anaOpen").addEventListener("click", () => { const a = lastSession(); if (!a) 
 /* ============ RunPotential ============ */
 function rpProfile() {
   const perfs = Object.values(S.races).filter(r => r.result && r.date <= TODAY && r.useInModel).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8)
-    .map(r => ({dist: Math.round(r.dist * 1000) / 1000, time: Math.round(r.result), date: r.date}));
+    .map(r => ({dist: Math.round(r.dist * 1000) / 1000, time: Math.round(flatResult(r)), date: r.date}));
   const runs = (S.records || []).filter(r => r.isRun);
   const wk = runs.filter(r => r.date > addDays(TODAY, -28)).reduce((s, r) => s + r.dist, 0) / 4;
   return {app: "RunPotential", v: 2, perfs, age: S.user && S.user.age || 0, weight: S.user && S.user.weight || 0, gender: S.user ? S.user.gender : "m",
