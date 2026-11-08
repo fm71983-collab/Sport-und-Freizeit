@@ -545,7 +545,12 @@ textarea{resize:vertical;min-height:60px}
 .race.done .res-main{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center}
 .race.done .res-time{font-size:44px;color:var(--good)}
 .race.done .kv dd small.good{color:var(--good)}.race.done .kv dd small.warn{color:var(--warn)}
-@media(max-width:520px){.race.done .res-main{grid-template-columns:1fr;gap:10px}}
+.race.ask{border-color:color-mix(in srgb,var(--warn) 55%,var(--line))}
+.race.ask .res-main{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center}
+.race.ask .res-time{font-size:40px}
+.race.ask .ask-q{margin:0;font-weight:700;font-size:16px}
+.ask-btns{display:flex;gap:8px;flex-wrap:wrap}.ask-btns .btn{flex:1 1 180px}
+@media(max-width:520px){.race.done .res-main,.race.ask .res-main{grid-template-columns:1fr;gap:10px}}
 .race.opt{border-style:dashed;border-color:color-mix(in srgb,var(--muted) 55%,transparent)}
 :root[data-skin="clean"] .race.opt{border:1.5px dashed color-mix(in srgb,var(--muted) 45%,transparent)}
 .race .eyebrow .pill{margin-left:4px;vertical-align:1px}
@@ -972,8 +977,8 @@ function fmtT(s, forceH) {
 const fmtP = s => Number.isFinite(s) && s > 0 ? `${Math.floor(s / 60)}:${pad(Math.round(s % 60) === 60 ? 59 : Math.round(s % 60))}` : "–";
 /* Formwert ganzzahlig mit Vorzeichen; -0,4 wird zu „0“ statt „-0“ */
 const formTxt = v => { const n = Math.round(v) || 0; return (n > 0 ? "+" : "") + nf(n); };
-/* Rennen steht noch bevor: künftig oder heute ohne Ergebnis */
-const isUpcoming = r => r.date > TODAY || (r.date === TODAY && !r.result);
+/* Rennen steht noch bevor: künftig oder heute ohne Ergebnis und ohne offene Nachfrage */
+const isUpcoming = r => r.date > TODAY || (r.date === TODAY && !r.result && !r.resultCand);
 /* Ergebnis auf flache Strecke umgerechnet (Streckenfaktor wie in der Prognose) */
 const flatResult = r => r.result / (r.course || 1);
 const km1 = v => (Math.round(v * 10) / 10).toLocaleString("de-DE", {minimumFractionDigits: 1, maximumFractionDigits: 1});
@@ -1580,6 +1585,7 @@ function renderHeroX(r) {
   const p = S.plan[TODAY]; const done = (S.records || []).filter(a => a.date === TODAY && (a.isRun || a.cat === "bike"));
   if (done.length) chips.push(`<button class="hx-chip" type="button" data-hx="act" style="--dot:var(--good)"><i></i><span>Heute erledigt: <b>${km1(done.reduce((s2, a) => s2 + a.dist, 0))} km</b></span></button>`);
   else if (p) chips.push(`<button class="hx-chip" type="button" data-hx="plan" style="--dot:${TYPE_COL[p.type] || "var(--muted)"}"><i></i><span>${p.type === "rest" ? "Heute Ruhetag" : `Heute: <b>${esc(p.title)}</b>${p.km ? ` · ${km1(p.km)} km` : ""}`}</span></button>`);
+  Object.values(S.races).filter(x => !x.result && x.resultCand).forEach(x => chips.push(`<button class="hx-chip" type="button" data-hx="race" style="--dot:var(--warn)"><i></i><span>${esc(shortRace(x))}: <b>Ergebnis bestätigen?</b></span></button>`));
   const upAll = Object.values(S.races).filter(isUpcoming).sort((a, b) => a.date.localeCompare(b.date));
   const nr = upAll.find(x => !x.optional) || upAll[0];
   if (nr) { const dd = daysBetween(TODAY, nr.date); chips.push(`<button class="hx-chip" type="button" data-hx="race" style="--dot:var(--accent-2)"><i></i><span>${esc(shortRace(nr))} in <b>${dd}</b> ${dd === 1 ? "Tag" : "Tagen"}</span></button>`); }
@@ -2700,7 +2706,8 @@ function renderRaces() {
         `<div class="ractions"><button class="btn link" type="button" data-qopen="${esc(r.id)}">${r.intent ? "Vorhaben" : "Vorhaben?"}</button>${f ? `<button class="btn link" type="button" data-pace="${esc(r.id)}">${S.pace && S.pace.id === r.id ? "Einteilung zu" : "Einteilung"}</button>` : ""}${r.bg || bgState.loading[r.id] ? "" : `<button class="btn link" type="button" data-bg="${esc(r.id)}">Hintergrund</button>`}<button class="btn link" type="button" data-optional="${esc(r.id)}" title="${r.optional ? "Rennen fest einplanen" : "Als optional markieren: Prognosen laufen weiter, der Plan richtet sich nicht danach"}">${r.optional ? "Fest einplanen" : "Optional"}</button>${r.intent && !r.optional ? `<button class="btn link" type="button" data-adj="${esc(r.id)}">Plan anpassen</button>` : ""}<button class="btn link" type="button" data-hist="${esc(r.id)}">${r.history && r.history.length ? "Historie" : "Schon gelaufen?"}</button><button class="btn link del" type="button" data-delrace="${esc(r.id)}">Löschen</button></div>`}
     </article>`;
   }).join("") || `<div class="panel"><div class="skeleton">Keine anstehenden Rennen.</div></div>`;
-  if (!focused) setHTML($("raceCards"), doneRecent.map(resultCard).join("") + html);
+  const asking = all.filter(r => !r.result && r.resultCand).sort((a, b) => b.date.localeCompare(a.date));
+  if (!focused) setHTML($("raceCards"), asking.map(askCard).join("") + doneRecent.map(resultCard).join("") + html);
   const past = all.filter(r => !isUpcoming(r)).sort((a, b) => b.date.localeCompare(a.date));
   setHTML($("pastRaces"), past.length ? `<table class="resp"><thead><tr><th>Datum</th><th>Rennen</th><th class="n">km</th><th class="n">Zeit</th><th class="n">Pace</th><th>Vergleich</th><th>im Modell</th><th></th></tr></thead><tbody>${past.map(r => `<tr><td data-l="Datum">${dShort(r.date)}${parseIso(r.date).getFullYear()}</td><td class="wide" data-l="Rennen">${esc(r.name)}</td><td class="n" data-l="km">${nf(r.dist, r.dist % 1 ? 2 : 0)}</td><td class="n" data-l="Zeit">${r.result ? fmtT(r.result, r.dist > 20) : "–"}</td><td class="n" data-l="Pace">${r.result ? fmtP(r.result / r.dist) : "–"}</td><td class="small" data-l="Vergleich">${cmpShort(r)}</td><td data-l="Modell">${r.useInModel ? `<span class="pill good">ja</span>` : `<span class="pill neutral">nein</span>`}</td><td data-l="">${S.delAsk === r.id ? `<span class="small">Wirklich löschen? <button class="btn primary" type="button" data-delyes="${esc(r.id)}">Ja</button> <button class="btn ghost" type="button" data-delno>Nein</button></span>` : `<button class="btn ghost del" type="button" data-delrace="${esc(r.id)}" aria-label="${esc(r.name)} löschen">Löschen</button>`}</td></tr>`).join("")}</tbody></table>` : `<div class="skeleton">Keine Rennen.</div>`);
 }
@@ -3290,9 +3297,10 @@ function recentResultsTxt() {
   return Object.values(S.races).filter(r => r.result && !isUpcoming(r) && r.date >= addDays(TODAY, -120)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4)
     .map(r => `${r.date} ${r.name} ${nf(r.dist, r.dist % 1 ? 1 : 0)} km in ${fmtT(r.result, true)}${r.goal ? ` (Ziel ${fmtT(r.goal, true)})` : ""}${r.predAtRace ? ` (Prognose ${fmtT(r.predAtRace, true)})` : ""}${(r.course || 1) !== 1 ? ` [Streckenfaktor ×${nf(r.course, 2)}]` : ""}`).join("; ");
 }
-/* Lauf, der zum Rennen passt: gleicher Tag, Distanz ±12 %, die nächstliegende */
+/* Lauf, der zum Rennen passen könnte: gleicher Tag, Distanz ±12 %, die nächstliegende; abgelehnte Läufe ausgenommen */
 function raceActivity(r) {
-  const c = (S.records || []).filter(a => a.isRun && a.date === r.date && a.dur > 0 && Math.abs(a.dist - r.dist) / r.dist <= 0.12);
+  const dec = r.declinedLabels || [];
+  const c = (S.records || []).filter(a => a.isRun && a.date === r.date && a.dur > 0 && !dec.includes(a.label) && Math.abs(a.dist - r.dist) / r.dist <= 0.12);
   return c.sort((a, b) => Math.abs(a.dist - r.dist) - Math.abs(b.dist - r.dist))[0] || null;
 }
 let detecting = false;
@@ -3301,13 +3309,14 @@ async function detectRaceResults() {
   detecting = true; let changed = false;
   try {
     for (const r of Object.values(S.races)) {
-      if (r.result || r.resultDeclined || r.date > TODAY || r.date < addDays(TODAY, -60)) continue;
+      if (r.result || r.resultCand || r.date > TODAY || r.date < addDays(TODAY, -60)) continue;
       const a = raceActivity(r); if (!a) continue;
       // Prognose der App vor dem Start: letzter Stand bis zum Renntag, sonst jetzt (noch ohne dieses Ergebnis)
       const snap = Object.values(S.forecasts).filter(f => f.race === r.id && f.date <= r.date && f.pred).sort((x, y) => y.date.localeCompare(x.date))[0];
       const f = snap ? null : forecast(r);
-      const data = {result: Math.round(a.dur), useInModel: true, resultAuto: true, resultLabel: a.label || null, resultDist: Math.round(a.dist * 100) / 100,
-        resultHr: a.hr || null, predAtRace: snap ? snap.pred : f ? Math.round(f.pred) : null, predDate: snap ? snap.date : f ? TODAY : null};
+      // nur vormerken: übernommen wird erst, wenn du bestätigst, dass es das Rennen war
+      const data = {resultCand: {dur: Math.round(a.dur), dist: Math.round(a.dist * 100) / 100, hr: a.hr || null, label: a.label || null},
+        predAtRace: snap ? snap.pred : f ? Math.round(f.pred) : null, predDate: snap ? snap.date : f ? TODAY : null};
       try { await S.db.collection("races").doc(r.id).update(data); S.races[r.id] = {...S.races[r.id], ...data}; changed = true; } catch {}
     }
   } finally { detecting = false; }
@@ -3328,6 +3337,18 @@ function resultCard(r) {
     <div class="ractions"><button class="btn link" type="button" data-resfix="${esc(r.id)}">Zeit korrigieren</button><button class="btn link" type="button" data-resmodel="${esc(r.id)}">${r.useInModel ? "Nicht ins Modell" : "Ins Modell aufnehmen"}</button><button class="btn link del" type="button" data-resdel="${esc(r.id)}" title="Falls der erkannte Lauf nicht das Rennen war">Kein Rennergebnis</button></div>
   </article>`;
 }
+function askCard(r) {
+  const c = r.resultCand; const long = r.dist > 20;
+  return `<article class="panel race ask">
+    <div class="rtop"><div><div class="eyebrow">${dLong(r.date)}${r.priority ? ` · Prio ${esc(r.priority)}` : ""}</div><h2>${esc(r.name)}</h2><div class="small muted">${nf(r.dist, r.dist % 1 ? 1 : 0)} km</div></div>
+      <span class="pill warn">Rückfrage</span></div>
+    <p class="ask-q">War dieser Lauf das Rennen?</p>
+    <div class="res-main"><div><div class="bignum num res-time">${fmtT(c.dur, long)}</div><div class="small muted">${km1(c.dist)} km · ${fmtP(c.dur / c.dist)}/km${c.hr ? ` · Ø ${c.hr} bpm` : ""}</div></div>
+      <dl class="kv"><dt>Ziel</dt><dd>${r.goal ? fmtT(r.goal, long) : `<span class="muted">keins</span>`}</dd><dt>App-Prognose</dt><dd>${r.predAtRace ? fmtT(r.predAtRace, long) : `<span class="muted">–</span>`}</dd></dl></div>
+    <p class="note">Laut Coros am Renntag gelaufen. Erst wenn du bestätigst, wird die Zeit als Ergebnis gespeichert und fließt in die Prognosen und die Trainingsplanung ein.</p>
+    <div class="ask-btns"><button class="btn primary" type="button" data-resyes="${esc(r.id)}">Ja, das war das Rennen</button><button class="btn" type="button" data-resno="${esc(r.id)}">Nein, nur Training</button></div>
+  </article>`;
+}
 async function updRace(id, upd) {
   if (!S.db) return false;
   try { await S.db.collection("races").doc(id).update(upd); S.races[id] = {...S.races[id], ...upd}; renderAll(); return true; } catch { showToast("Speichern hat nicht geklappt. Bitte erneut versuchen."); return false; }
@@ -3341,7 +3362,12 @@ $("raceCards").addEventListener("click", async ev => {
     S.resFix = null; await updRace(id, {result: sec, resultAuto: false}); return;
   }
   const md = t.closest("[data-resmodel]"); if (md) { const id = md.dataset.resmodel; await updRace(id, {useInModel: !S.races[id].useInModel}); return; }
-  const dl = t.closest("[data-resdel]"); if (dl) { await updRace(dl.dataset.resdel, {result: null, useInModel: false, resultAuto: false, resultDeclined: true}); return; }
+  const dl = t.closest("[data-resdel]"); if (dl) { const r = S.races[dl.dataset.resdel];
+    await updRace(r.id, {result: null, useInModel: false, resultAuto: false, declinedLabels: [...(r.declinedLabels || []), ...(r.resultLabel ? [r.resultLabel] : [])]}); return; }
+  const ys = t.closest("[data-resyes]"); if (ys) { const r = S.races[ys.dataset.resyes]; const c = r.resultCand; if (!c) return; ys.disabled = true;
+    await updRace(r.id, {result: c.dur, useInModel: true, resultAuto: true, resultLabel: c.label, resultDist: c.dist, resultHr: c.hr, resultCand: null}); return; }
+  const no = t.closest("[data-resno]"); if (no) { const r = S.races[no.dataset.resno]; const c = r.resultCand; if (!c) return; no.disabled = true;
+    await updRace(r.id, {resultCand: null, declinedLabels: [...(r.declinedLabels || []), c.label]}); return; }
 });
 
 /* ============ Datenspeicher ============ */
