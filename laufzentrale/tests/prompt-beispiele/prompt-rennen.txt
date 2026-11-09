@@ -1,0 +1,50 @@
+Du bist ein erfahrener Laufcoach. Antworte auf Deutsch, konkret und ohne Markdown. Nutze nur die gelieferten Daten und erfinde nichts; fehlt etwas Wichtiges, sag es in einem Halbsatz. Ziel: maximaler sportlicher Erfolg ohne Verletzung.
+
+Analysiere mein Rennen. Schwerpunkt ist der Vergleich mit meiner Wunschzielzeit, der App-Prognose und den früheren Ausgaben dieses Rennens: Wo genau (Kilometer, Anstiege, Gefälle) habe ich gegenüber früher Zeit gewonnen oder verloren, war das Pacing klug, und was sagt der Puls? Ordne das Rennen dann in meinen Trainingsplan ein (Vorbereitung, Woche davor, mein Vorhaben für dieses Rennen) und ziehe Schlüsse für die kommenden Rennen: Sind Prognosen und Ziele realistisch, und was folgt für Erholung und Plan in den nächsten Tagen? Gliedere in kurze Absätze, die mit „Fazit:“, „Ziel und Prognose:“, „Vergleich mit früher:“, „Rennverlauf:“, „Training:“ und „Ausblick:“ beginnen. Höchstens 320 Wörter.
+
+RENNEN: Rursee-Test am 2026-11-09, 20 km (223 hm), Streckenfaktor ×1,10, Priorität B, mein Vorhaben: Test- oder Aufbaurennen.
+Ergebnis: 1:30:00 (4:30/km, Ø Puls 140, Zeit laut Coros).
+Wunschzielzeit: 1:31:40 (vorläufig) → 1:40 schneller.
+App-Prognose vor dem Start: 1:33:20 (Stand 2026-11-08) → 3:20 schneller.
+Verlauf der App-Prognose: 11-07 1:34:10 (Zielchance 30 %); 11-08 1:33:20 (Zielchance 40 %).
+
+FRÜHERE AUSGABEN DIESES RENNENS:
+2023-11-05: 20,0 km in 1:37:00 (4:51/km; heute 7:00 schneller)
+2024-11-03: 20,1 km in 1:35:50 (4:46/km, Ø Puls 158; heute 5:21 schneller)
+  km-Paces: 5:00, 4:50, 4:48, 4:55, 5:00, 5:10, 4:40, 4:45, 4:50, 4:52, 4:48, 4:46, 5:00, 5:05, 4:50, 4:40, 4:35, 4:30, 4:28, 4:25
+  steigungsbereinigt: 4:50, 4:45, 4:46, 4:50, 4:52, 4:55, 4:45, 4:48, 4:49, 4:50, 4:47, 4:46, 4:52, 4:56, 4:49, 4:44, 4:40, 4:36, 4:32, 4:28
+  Höhenmeter je km: 14, 10, 19, 8, 5, 30, 2, 4, 6, 8, 1, 0, 22, 25, 3, 1, 0, 0, 2, 1
+
+RENNVERLAUF (Coros):
+Einheit Mo 2026-11-09, Lauf „Testlauf 0“: 20,0 km in 1:30:00, Ø 4:30/km, Ø Puls 140, max 158, +40/−32 Hm, Kadenz 172 spm.
+Geplant war an dem Tag: Locker (Locker, 9 km).
+HFmax 157, Schwellenpace laut Coros 4:15/km. Zeit in Pulszonen: Z1 Regeneration 0 %, Z2 Grundlage 0 %, Z3 Tempo 0 %, Z4 Schwelle 87 %, Z5 VO2max 13 %. Puls-Drift 2. gegenüber 1. Hälfte 5,2 %.
+Splits:
+km 1: 5:00/km (bereinigt 4:58), Puls 140 (max 150), +5/−4 m, 172 spm
+km 2: 5:02/km (bereinigt 4:58), Puls 141 (max 151), +5/−4 m, 172 spm
+km 3: 5:04/km (bereinigt 4:58), Puls 142 (max 152), +5/−4 m, 172 spm
+km 4: 5:06/km (bereinigt 4:58), Puls 143 (max 153), +5/−4 m, 172 spm
+km 5: 5:08/km (bereinigt 4:58), Puls 144 (max 154), +5/−4 m, 172 spm
+km 6: 5:10/km (bereinigt 4:58), Puls 145 (max 155), +5/−4 m, 172 spm
+km 7: 5:12/km (bereinigt 4:58), Puls 146 (max 156), +5/−4 m, 172 spm
+km 8: 5:14/km (bereinigt 4:58), Puls 147 (max 157), +5/−4 m, 172 spm
+Ähnliche Läufe (±8 s/km): 2026-11-03 Testlauf 6: 9,0 km 4:30/km Puls 146; 2026-10-28 Testlauf 12: 10,0 km 4:30/km Puls 142; 2026-10-22 Testlauf 18: 11,0 km 4:30/km Puls 148; 2026-10-16 Testlauf 24: 12,0 km 4:30/km Puls 144.
+
+Rollierende Trainingswoche 2026-11-02 bis 2026-11-08: 31,0 Lauf-km, 2,6 h, 3 Einheiten; Belastung kurzfristig 61, langfristig 58, Quote 1,05 (optimal); HRV in ms 11-02: 50, 11-03: 56, 11-04: 55, 11-05: 54, 11-06: 53, 11-07: 52, 11-08: 51.
+Mo 2026-11-02: Plan –; gemacht: nichts
+Di 2026-11-03: Plan –; gemacht: Lauf 9,0 km 40:30 4:30/km Puls 146
+Mi 2026-11-04: Plan –; gemacht: nichts
+Do 2026-11-05: Plan –; gemacht: Lauf 12,0 km 1:04:00 5:20/km Puls 144
+Fr 2026-11-06: Plan –; gemacht: nichts
+Sa 2026-11-07: Plan –; gemacht: Lauf 10,0 km 53:20 5:20/km Puls 142
+So 2026-11-08: Plan –; gemacht: nichts
+
+Trainingsplan: aktuelle Phase „Pause“ (2026-11-09 bis 2026-11-15), danach „Wiedereinstieg“ ab 2026-11-16. Planerfüllung seit 2026-10-19: 100 % (Umfang 100 %, Schlüsseleinheiten 0/0).
+Wochenumfänge: ab 2026-10-19: geplant 0,0 km, gelaufen 28,0 km; ab 2026-10-26: geplant 0,0 km, gelaufen 49,0 km; ab 2026-11-02: geplant 0,0 km, gelaufen 31,0 km; ab 2026-11-09: geplant 21,0 km, gelaufen 20,0 km
+Geplant in den 14 Tagen nach der Einheit:
+Di 2026-11-10: 5 × 1000 m (Qualität, 12 km)
+
+KOMMENDE RENNEN (Prognose mit diesem Ergebnis):
+2027-03-07 Bienwald Marathon Kandel 42,2 km Prio A: Prognose 3:13:30 (ohne dieses Rennen 3:20:42), Ziel 3:10:00, Zielchance 30 %
+
+Heute ist 2026-11-09. Bereitschaft heute: Qualität möglich, mit Augenmaß (HRV 50 ms unter der Baseline (52 ms); Ruhepuls 48 (Median 49, -1); Schlaf-Score 78, 7:20 h; Coros-Erholung 92 %; Belastungsquote 1,05). Leistung laut Coros: VO2max 55, Schwelle 4:15/km, Prognosen 10 km 40:30, HM 1:30:00, M 3:10:00.

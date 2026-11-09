@@ -545,6 +545,11 @@ textarea{resize:vertical;min-height:60px}
 .race.done .res-main{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center}
 .race.done .res-time{font-size:44px;color:var(--good)}
 .race.done .kv dd small.good{color:var(--good)}.race.done .kv dd small.warn{color:var(--warn)}
+.race-ana{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:8px}
+.race-ana-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.race-ana-head > div{min-width:0;flex:1 1 200px}
+.race-ana-out{white-space:pre-wrap;font-size:14.5px;line-height:1.55;background:var(--surface-2);border-radius:var(--radius-s);padding:12px 14px}
+.race-ana-out.err{color:var(--bad);background:var(--bad-soft)}
 .race.ask{border-color:color-mix(in srgb,var(--warn) 55%,var(--line))}
 .race.ask .res-main{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:center}
 .race.ask .res-time{font-size:40px}
@@ -3015,7 +3020,7 @@ $("raceCards").addEventListener("click", ev => {
 /* ============ Rennhistorie: dasselbe Rennen in früheren Jahren ============ */
 // Gesucht wird in Coros rund um den Jahrestag, mit passender Distanz; Treffer werden nach Name, Startort und Datum bewertet.
 S.hist = null; // {id, loading, cands, err, searched}
-const GENERIC = new Set(["marathon", "halbmarathon", "lauf", "laufen", "rennen", "run", "trail", "city", "stadtlauf", "winterlaufserie", "outdoor", "the", "und", "der", "die", "das"]);
+const GENERIC = new Set(["marathon", "halbmarathon", "lauf", "laufen", "rennen", "run", "trail", "city", "stadtlauf", "test", "testlauf", "race", "volkslauf", "winterlaufserie", "outdoor", "the", "und", "der", "die", "das"]);
 const nameWords = n => String(n || "").toLowerCase().replace(/ß/g, "ss").normalize("NFD").replace(/[̀-ͯ]/g, "").split(/[^a-z0-9]+/).filter(w => w.length >= 4 && !GENERIC.has(w) && !/^\d+$/.test(w));
 function homeStart() {
   const c = {}; (S.records || []).forEach(a => { if (a.slat) { const k = a.slat.toFixed(2) + "," + a.slon.toFixed(2); c[k] = (c[k] || 0) + 1; } });
@@ -3334,6 +3339,7 @@ function resultCard(r) {
         <dt>App-Prognose${r.predDate ? `<small>Stand ${dShort(r.predDate)}</small>` : ""}</dt><dd>${r.predAtRace ? `${fmtT(r.predAtRace, long)}<small class="${p.cls}">${p.txt}</small>` : `<span class="muted">–</span>`}</dd></dl></div>
     <p class="note">${r.resultAuto ? `Aus Coros erkannt${r.resultDist ? ` (${km1(r.resultDist)} km gemessen)` : ""}. ` : ""}${r.useInModel ? `Fließt in die Prognosen der anderen Rennen und in die Trainingsplanung ein${cf !== 1 ? ` – wegen der Strecke bereinigt (×${nf(cf, 2)}), das entspricht ${fmtT(flatResult(r), long)} auf flacher Strecke` : ""}.` : "Wird im Prognosemodell nicht berücksichtigt."}</p>
     ${fix ? `<div class="goalrow"><label class="small muted" for="resIn-${esc(r.id)}">Offizielle Zeit</label><input id="resIn-${esc(r.id)}" data-resin="${esc(r.id)}" value="${fmtT(r.result, long)}" class="t-in" inputmode="decimal" autocomplete="off"><button class="btn primary" type="button" data-ressave="${esc(r.id)}">Speichern</button><button class="btn ghost" type="button" data-resfix="">Abbrechen</button></div>` : ""}
+    ${raceAnaHtml(r)}
     <div class="ractions"><button class="btn link" type="button" data-resfix="${esc(r.id)}">Zeit korrigieren</button><button class="btn link" type="button" data-resmodel="${esc(r.id)}">${r.useInModel ? "Nicht ins Modell" : "Ins Modell aufnehmen"}</button><button class="btn link del" type="button" data-resdel="${esc(r.id)}" title="Falls der erkannte Lauf nicht das Rennen war">Kein Rennergebnis</button></div>
   </article>`;
 }
@@ -3621,6 +3627,66 @@ $("anaCtxChips").addEventListener("click", ev => {
   S.ana.ctx = S.ana.ctx.includes(k) ? S.ana.ctx.filter(x => x !== k) : [...S.ana.ctx, k]; lsSet("lz-ana", JSON.stringify(S.ana)); renderAna();
 });
 $("anaBtn").addEventListener("click", runAna);
+
+/* ============ KI-Analyse eines gelaufenen Rennens ============ */
+S.raceAna = {busy: null, partial: "", err: {}};
+/* frühere Ausgaben: Rennhistorie aus Coros und gespeicherte Ergebnisse gleichen Namens */
+function pastEditions(r) {
+  const out = (r.history || []).filter(h => h.date < r.date).map(h => ({date: h.date, dist: h.dist, dur: h.dur, hr: h.hr, kp: h.kp, kg: h.kg, up: h.up}));
+  const words = nameWords(r.name);
+  Object.values(S.races).filter(x => x.id !== r.id && x.result && x.date < r.date && Math.abs(x.dist - r.dist) / r.dist < .15 && nameWords(x.name).some(w => words.includes(w)) && !out.some(o => o.date === x.date))
+    .forEach(x => out.push({date: x.date, dist: x.dist, dur: x.result}));
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+function raceAnaCtx(r, a, l) {
+  const long = r.dist > 20; const parts = [];
+  const fc = Object.values(S.forecasts).filter(f => f.race === r.id && f.pred && f.date <= r.date).sort((x, y) => x.date.localeCompare(y.date));
+  parts.push(`RENNEN: ${r.name} am ${r.date}, ${nf(r.dist, r.dist % 1 ? 2 : 0)} km${r.courseNote ? ` (${r.courseNote})` : ""}${(r.course || 1) !== 1 ? `, Streckenfaktor ×${nf(r.course, 2)}` : ""}${r.priority ? `, Priorität ${r.priority}` : ""}${r.intent ? `, mein Vorhaben: ${INTENT[r.intent] || r.intent}${r.intentNote ? " – " + r.intentNote : ""}` : ""}.
+Ergebnis: ${fmtT(r.result, true)} (${fmtP(r.result / r.dist)}/km${r.resultHr ? `, Ø Puls ${r.resultHr}` : ""}${r.resultAuto === false ? ", offizielle Zeit" : ", Zeit laut Coros"}).
+Wunschzielzeit: ${r.goal ? `${fmtT(r.goal, true)}${r.goalTentative ? " (vorläufig)" : ""} → ${fmtT(Math.abs(r.result - r.goal))} ${r.result <= r.goal ? "schneller" : "langsamer"}` : "keine"}.
+App-Prognose vor dem Start: ${r.predAtRace ? `${fmtT(r.predAtRace, true)}${r.predDate ? ` (Stand ${r.predDate})` : ""} → ${fmtT(Math.abs(r.result - r.predAtRace))} ${r.result <= r.predAtRace ? "schneller" : "langsamer"}` : "keine"}.
+Verlauf der App-Prognose: ${fc.length ? fc.map(f => `${f.date.slice(5)} ${fmtT(f.pred, true)}${f.prob != null ? ` (Zielchance ${nf(f.prob * 100)} %)` : ""}`).join("; ") : "keiner"}.`);
+  const eds = pastEditions(r);
+  parts.push(eds.length ? `FRÜHERE AUSGABEN DIESES RENNENS:\n${eds.map(h => `${h.date}: ${km1(h.dist)} km in ${fmtT(h.dur, true)} (${fmtP(h.dur / h.dist)}/km${h.hr ? `, Ø Puls ${h.hr}` : ""}; heute ${fmtT(Math.abs(r.result - h.dur * r.dist / h.dist))} ${r.result <= h.dur * r.dist / h.dist ? "schneller" : "langsamer"})${h.kp && h.kp.length ? `\n  km-Paces: ${h.kp.map(fmtP).join(", ")}${h.kg && h.kg.length ? `\n  steigungsbereinigt: ${h.kg.map(fmtP).join(", ")}` : ""}${h.up && h.up.length ? `\n  Höhenmeter je km: ${h.up.join(", ")}` : ""}` : ""}`).join("\n")}` : "FRÜHERE AUSGABEN: keine bekannt.");
+  parts.push(a ? `RENNVERLAUF (Coros):\n${sessionBlock(a, l)}` : "RENNVERLAUF: keine Coros-Daten zum Lauf gefunden.");
+  parts.push(rollWeekCtx(addDays(r.date, -1)));
+  parts.push(planCtx({date: r.date}));
+  // Wirkung des Ergebnisses auf die Prognosen der kommenden Rennen
+  const up = Object.values(S.races).filter(x => x.id !== r.id && isUpcoming(x)).sort((x, y) => x.date.localeCompare(y.date)).slice(0, 5);
+  const was = r.useInModel; S.races[r.id].useInModel = false; const before = {}; up.forEach(x => { const f = forecast(x); if (f) before[x.id] = f.pred; }); S.races[r.id].useInModel = was;
+  parts.push(`KOMMENDE RENNEN (Prognose mit diesem Ergebnis${was ? "" : " – es ist derzeit NICHT im Modell"}):\n${up.map(x => { const f = forecast(x); const lg = x.dist > 20; return `${x.date} ${x.name} ${nf(x.dist, x.dist % 1 ? 1 : 0)} km${x.priority ? ` Prio ${x.priority}` : ""}${x.optional ? " (optional)" : ""}: Prognose ${f ? fmtT(f.pred, lg) : "–"}${f && before[x.id] && Math.abs(before[x.id] - f.pred) >= 5 ? ` (ohne dieses Rennen ${fmtT(before[x.id], lg)})` : ""}${x.goal ? `, Ziel ${fmtT(x.goal, lg)}` : ""}${f && f.prob != null ? `, Zielchance ${nf(f.prob * 100)} %` : ""}`; }).join("\n") || "keine"}`);
+  parts.push(statusBlock());
+  return parts.join("\n\n");
+}
+const RACE_TASK = `Analysiere mein Rennen. Schwerpunkt ist der Vergleich mit meiner Wunschzielzeit, der App-Prognose und den früheren Ausgaben dieses Rennens: Wo genau (Kilometer, Anstiege, Gefälle) habe ich gegenüber früher Zeit gewonnen oder verloren, war das Pacing klug, und was sagt der Puls? Ordne das Rennen dann in meinen Trainingsplan ein (Vorbereitung, Woche davor, mein Vorhaben für dieses Rennen) und ziehe Schlüsse für die kommenden Rennen: Sind Prognosen und Ziele realistisch, und was folgt für Erholung und Plan in den nächsten Tagen? Gliedere in kurze Absätze, die mit „Fazit:“, „Ziel und Prognose:“, „Vergleich mit früher:“, „Rennverlauf:“, „Training:“ und „Ausblick:“ beginnen. Höchstens 320 Wörter.`;
+async function runRaceAna(id) {
+  const r = S.races[id]; if (!r || !r.result || S.raceAna.busy || !S.sample) return;
+  S.raceAna.busy = id; S.raceAna.partial = ""; delete S.raceAna.err[id]; renderRaces();
+  try {
+    const a = (S.records || []).find(x => x.label && x.label === r.resultLabel) || raceActivity({...r, declinedLabels: []});
+    let l = a ? S.laps[a.label] : null;
+    if (a && l === undefined) { try { l = S.laps[a.label] = parseLaps(await coros("queryActivityLapData", {labelId: a.label, sportType: a.sport})); } catch { l = null; } }
+    const res = await S.sample([{role: "user", content: `${ANA_SYS}\n\n${RACE_TASK}\n\n${raceAnaCtx(r, a, l)}`}], {modelTier: "default", cache: false, onText: ({text}) => { S.raceAna.partial = text; const o = document.querySelector(`[data-raout="${CSS.escape(id)}"]`); if (o) o.textContent = text; }});
+    const text = String(res.text || "").trim(); if (!text) throw {code: "empty"};
+    const analysis = {text, at: new Date().toISOString()};
+    S.races[id] = {...S.races[id], analysis};
+    if (S.db) { try { await S.db.collection("races").doc(id).update({analysis}); } catch {} }
+  } catch (e) {
+    S.raceAna.err[id] = e && (e.code === "not_granted" || e.code === "rate_limited") ? AI_ERR(e) : "Analyse fehlgeschlagen. Bitte erneut versuchen.";
+  }
+  S.raceAna.busy = null; renderRaces();
+}
+function raceAnaHtml(r) {
+  const busy = S.raceAna.busy === r.id, err = S.raceAna.err[r.id], an = r.analysis;
+  const txt = busy ? (S.raceAna.partial || "Claude analysiert das Rennen …") : err ? err : an ? an.text : "";
+  return `<div class="race-ana">
+    <div class="race-ana-head"><div><div class="eyebrow">KI-Analyse</div><div class="small muted">${an && !busy ? `Stand ${dShort(an.at.slice(0, 10))} · ` : ""}Ziel, Prognose, frühere Jahre, Trainingsplan und kommende Rennen</div></div>
+      <button class="btn${an ? "" : " primary"}" type="button" data-raceana="${esc(r.id)}"${busy || S.raceAna.busy || !S.sample ? " disabled" : ""}>${busy ? "Analysiert …" : an ? "Neu analysieren" : "Rennen analysieren"}</button></div>
+    ${txt ? `<div class="race-ana-out${err && !busy ? " err" : ""}" data-raout="${esc(r.id)}">${esc(txt)}</div>` : !S.sample ? `<p class="note">Die Claude-Analyse ist in dieser Ansicht nicht verfügbar.</p>` : ""}
+  </div>`;
+}
+$("raceCards").addEventListener("click", ev => { const b = ev.target.closest("[data-raceana]"); if (b) runRaceAna(b.dataset.raceana); });
+
 $("anaOpen").addEventListener("click", () => { const a = lastSession(); if (!a) return; showView("aktivitaeten", true); openActivity(a.label); });
 
 /* ============ RunPotential ============ */
