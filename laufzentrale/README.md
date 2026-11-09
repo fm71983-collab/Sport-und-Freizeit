@@ -2,7 +2,7 @@
 
 Lauf-Dashboard als Claude-Artefakt: https://claude.ai/artifact/Si9LrtxufGk51tpDwVEijX
 
-Stand im Repository = veröffentlichte Artefakt-Version 32 (`1794225226-fa25`, 09.11.2026): KI-Analyse gelaufener Rennen (Ziel, Prognose, frühere Ausgaben, Plan, kommende Rennen); Lauf am Renntag wird erst nach Rückfrage als Ergebnis übernommen; Zurück-Taste schließt erst Fenster, dann vorheriger Reiter.
+Stand im Repository = veröffentlichte Artefakt-Version 33 (`1794236786-1e81`, 09.11.2026): Rennergebnisse nach Rückfrage, Vergleich mit Ziel, App-Prognose und voriger Ausgabe (dauerhaft in der Tabelle), KI-Rennanalyse auf der Kachel (14 Tage); Zurück-Taste schließt erst Fenster, dann vorheriger Reiter.
 
 Herkunft: Export aus `fm71983-collab/claude-verbrauch`, Branch `ccr-3bbca5d6-a27vf2`; die drei Commits wurden mit `git am` samt Verlauf übernommen.
 
