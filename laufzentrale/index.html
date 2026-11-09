@@ -3296,7 +3296,14 @@ function cmpShort(r) {
   if (!r.result) return "–"; const out = [];
   if (r.goal) { const d = Math.round(r.result - r.goal); out.push(`Ziel ${d <= 0 ? "−" : "+"}${fmtT(Math.abs(d))}`); }
   if (r.predAtRace) { const d = Math.round(r.result - r.predAtRace); out.push(`Progn. ${d <= 0 ? "−" : "+"}${fmtT(Math.abs(d))}`); }
+  const pe = prevEdition(r); if (pe) out.push(`${pe.date.slice(0, 4)} ${pe.d <= 0 ? "−" : "+"}${fmtT(Math.abs(pe.d))}`);
   return out.join(" · ") || "–";
+}
+/* letzte frühere Ausgabe desselben Rennens, auf die Renndistanz umgerechnet */
+function prevEdition(r) {
+  if (!r.result) return null; const h = pastEditions(r).pop(); if (!h || !(h.dur > 0)) return null;
+  const norm = h.dur * (Math.abs(h.dist - r.dist) / r.dist < .03 ? 1 : r.dist / h.dist);
+  return {date: h.date, dur: norm, d: Math.round(r.result - norm)};
 }
 function recentResultsTxt() {
   return Object.values(S.races).filter(r => r.result && !isUpcoming(r) && r.date >= addDays(TODAY, -120)).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 4)
@@ -3330,13 +3337,15 @@ async function detectRaceResults() {
 function resultCard(r) {
   const long = r.dist > 20; const cf = r.course || 1;
   const g = r.goal ? resDiff(r.result, r.goal) : null, p = r.predAtRace ? resDiff(r.result, r.predAtRace) : null;
+  const pe = prevEdition(r), pd = pe ? resDiff(r.result, pe.dur) : null;
   const fix = S.resFix === r.id;
   return `<article class="panel race done">
     <div class="rtop"><div><div class="eyebrow">${dLong(r.date)}${r.priority ? ` · Prio ${esc(r.priority)}` : ""}</div><h2>${esc(r.name)}</h2><div class="small muted">${nf(r.dist, r.dist % 1 ? 1 : 0)} km${r.courseNote ? ` · ${esc(r.courseNote)}` : ""}</div></div>
       <span class="pill good">Gelaufen ✓</span></div>
     <div class="res-main"><div><div class="bignum num res-time">${fmtT(r.result, long)}</div><div class="small muted">${fmtP(r.result / r.dist)}/km${r.resultHr ? ` · Ø ${r.resultHr} bpm` : ""}</div></div>
       <dl class="kv"><dt>Ziel${r.goal && r.goalTentative ? "<small>vorläufig</small>" : ""}</dt><dd>${r.goal ? `${fmtT(r.goal, long)}<small class="${g.cls}">${g.txt}</small>` : `<span class="muted">keins</span>`}</dd>
-        <dt>App-Prognose${r.predDate ? `<small>Stand ${dShort(r.predDate)}</small>` : ""}</dt><dd>${r.predAtRace ? `${fmtT(r.predAtRace, long)}<small class="${p.cls}">${p.txt}</small>` : `<span class="muted">–</span>`}</dd></dl></div>
+        <dt>App-Prognose${r.predDate ? `<small>Stand ${dShort(r.predDate)}</small>` : ""}</dt><dd>${r.predAtRace ? `${fmtT(r.predAtRace, long)}<small class="${p.cls}">${p.txt}</small>` : `<span class="muted">–</span>`}</dd>${pe ? `
+        <dt>Vorige Ausgabe<small>${dShort(pe.date)}${pe.date.slice(0, 4)}</small></dt><dd>${fmtT(pe.dur, long)}<small class="${pd.cls}">${pd.txt}</small></dd>` : ""}</dl></div>
     <p class="note">${r.resultAuto ? `Aus Coros erkannt${r.resultDist ? ` (${km1(r.resultDist)} km gemessen)` : ""}. ` : ""}${r.useInModel ? `Fließt in die Prognosen der anderen Rennen und in die Trainingsplanung ein${cf !== 1 ? ` – wegen der Strecke bereinigt (×${nf(cf, 2)}), das entspricht ${fmtT(flatResult(r), long)} auf flacher Strecke` : ""}.` : "Wird im Prognosemodell nicht berücksichtigt."}</p>
     ${fix ? `<div class="goalrow"><label class="small muted" for="resIn-${esc(r.id)}">Offizielle Zeit</label><input id="resIn-${esc(r.id)}" data-resin="${esc(r.id)}" value="${fmtT(r.result, long)}" class="t-in" inputmode="decimal" autocomplete="off"><button class="btn primary" type="button" data-ressave="${esc(r.id)}">Speichern</button><button class="btn ghost" type="button" data-resfix="">Abbrechen</button></div>` : ""}
     ${raceAnaHtml(r)}
